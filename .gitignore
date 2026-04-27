@@ -1,0 +1,6 @@
+*.iso
+*.vmwarevm
+*.ova
+packer_cache
+remnux/REMnux*
+sift/SIFT*

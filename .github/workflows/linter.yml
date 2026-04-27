@@ -1,0 +1,62 @@
+---
+name: Code Linter
+
+# Trigger workflow on push or pull request to main branch
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Minimal permissions
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  linter:
+    name: Lint Code
+    runs-on: ubuntu-latest
+
+    steps:
+      # ----------------------------
+      # Step 1: Checkout repository
+      # ----------------------------
+      - name: Checkout repository
+        uses: actions/checkout@main
+        with:
+          fetch-depth: 0             # Fetch full history for accurate PR linting
+          persist-credentials: false # Security: do not persist GitHub token
+
+      # ----------------------------
+      # Step 2: Run Super-Linter
+      # ----------------------------
+      - name: Run Super-Linter
+        uses: super-linter/super-linter@v8
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Needed for PR status
+          VALIDATE_ALL_CODEBASE: false              # Only lint changed files in PRs
+          VALIDATE_BASH: true
+          VALIDATE_POWERSHELL: true
+          VALIDATE_MARKDOWN: true
+          VALIDATE_YAML: true
+
+  packer-validate:
+    name: Packer Validate
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        template:
+          - { dir: ubuntu-2404, vars: variables-ubuntu-2404.pkrvars.hcl }
+          - { dir: sift,        vars: variables-sift.pkrvars.hcl }
+          - { dir: remnux,      vars: variables-remnux.pkrvars.hcl }
+          - { dir: dfir,        vars: variables-sift.pkrvars.hcl }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-packer@v3
+      - name: Packer init
+        working-directory: packer-ubuntu/${{ matrix.template.dir }}
+        run: packer init .
+      - name: Packer validate
+        working-directory: packer-ubuntu/${{ matrix.template.dir }}
+        run: packer validate -var-file=../${{ matrix.template.vars }} .

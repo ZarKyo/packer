@@ -1,0 +1,87 @@
+#cloud-config
+autoinstall:
+  version: 1
+  drivers:
+    install: false
+  identity:
+    hostname: ${hostname}
+    password: ${password}
+    realname: ${username}
+    username: ${username}
+  kernel:
+    package: linux-generic
+  keyboard:
+    layout: fr
+    variant: latin9
+  locale: fr_FR.UTF-8
+  timezone: Europe/Paris
+  packages:
+    - openssh-server
+    - open-vm-tools
+    - cloud-init
+    - whois
+    - tasksel
+    - wget
+  early-commands:
+    - systemctl stop ssh
+  ssh:
+    allow-pw: true
+    install-server: true
+  storage:
+    layout:
+      name: lvm
+    config:
+      - type: disk
+        id: disk0
+        match:
+          size: largest
+        wipe: superblock
+        ptable: gpt
+        path: /dev/sda
+      - type: partition
+        id: partition_boot
+        device: disk0
+        size: 2G
+        flag: boot
+      - type: partition
+        id: partition_lvm
+        device: disk0
+        size: -1  # Use all the remaining space
+      - type: lvm_volgroup
+        id: vg0
+        devices:
+          - partition_lvm
+      - type: lvm_partition
+        id: lv_root
+        name: root
+        volgroup: vg0
+        size: -1  # Use all the remaining space
+      - type: lvm_partition
+        id: lv_swap
+        name: swap
+        volgroup: vg0
+        size: 2G  # Size for the swap
+      - type: format
+        id: format_boot
+        volume: partition_boot
+        fstype: ext4 # or btrfs / xfs
+      - type: format
+        id: format_root
+        volume: lv_root
+        fstype: ext4 # or btrfs / xfs
+      - type: format
+        id: format_swap
+        volume: lv_swap
+        fstype: swap
+      - type: mount
+        id: mount_boot
+        device: format_boot
+        path: /boot
+      - type: mount
+        id: mount_root
+        device: format_root
+        path: /
+  late-commands:
+  - 'echo "${username} ALL=(ALL) NOPASSWD:ALL" > /target/etc/sudoers.d/ubuntu-nopw'
+  - chmod 440 /target/etc/sudoers.d/ubuntu-nopw
+  - curtin in-target --target=/target -- sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT=""/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"/' /etc/default/grub
