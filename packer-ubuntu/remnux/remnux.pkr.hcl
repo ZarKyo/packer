@@ -167,6 +167,7 @@ build {
 
   provisioner "shell" {
     execute_command = "{{ .Vars }} bash '{{ .Path }}'"
+    scripts         = [
         "../scripts/remnux.sh",
     ]
   }
