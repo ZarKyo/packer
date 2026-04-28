@@ -158,8 +158,9 @@ build {
 
   provisioner "shell" {
     execute_command = "{{ .Vars }} bash '{{ .Path }}'"
-        "../scripts/sift.sh",
-        "../scripts/dfir.sh"
+    scripts = [
+      "../scripts/sift.sh",
+      "../scripts/dfir.sh"
     ]
   }
 
