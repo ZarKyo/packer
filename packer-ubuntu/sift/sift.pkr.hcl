@@ -160,7 +160,7 @@ build {
         "../scripts/setup.sh",
         "../scripts/disable_ipv6.sh",
         "../scripts/gui.sh",
-        "../scripts/faster-boot.sh"
+        "../scripts/faster-boot.sh",
         "../scripts/disable-aptdaily.sh"
     ]
   }
