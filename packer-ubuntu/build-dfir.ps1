@@ -5,4 +5,4 @@ $BASE="sift"
 $CONF_NAME="dfir"
 $VM_DIR_NAME="DFIR"
 
-Create-VirtualMachine $BASE $CONF_NAME $VM_DIR_NAME
+New-VirtualMachine $BASE $CONF_NAME $VM_DIR_NAME

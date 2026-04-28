@@ -10,13 +10,11 @@ IFS=$'\n\t'
 mkdir -p ~/src/bin/
 cd  ~/src/bin/ || exit
 
-# TODO: replace with real URLs before building
-curl -fsSL https:// -o screen_lock.sh
-curl -fsSL https:// -o vmware-mount-shared.sh
-chmod +x *.sh
+curl -fsSL https://raw.githubusercontent.com/ZarKyo/utils/refs/heads/main/bin/screen_lock.sh -o screen_lock.sh
+curl -fsSL https://raw.githubusercontent.com/ZarKyo/utils/refs/heads/main/bin/vmware-mount-shared.sh -o vmware-mount-shared.sh
+chmod +x ./*.sh
 
-# TODO: replace with real repo URL before building
-git clone https://
+git clone https://github.com/ZarKyo/dfir-tools.git
 cd dfir-tools/ || exit
 chmod +x common/bin/*.sh
 chmod +x remnux/*.sh

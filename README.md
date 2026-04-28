@@ -1,5 +1,7 @@
 # Packer
 
+[![Super-Linter](https://github.com/ZarKyo/packer/actions/workflows/linter.yml/badge.svg)](https://github.com/marketplace/actions/super-linter)
+
 > Based on [reuteras/packer](https://github.com/reuteras/packer), adapted and extended.
 
 Automated VMware virtual machine builds using [Packer](https://developer.hashicorp.com/packer). Four VM types are supported, each built from a Ubuntu ISO with unattended installation via cloud-init and configured through provisioning scripts over SSH.
@@ -7,7 +9,7 @@ Automated VMware virtual machine builds using [Packer](https://developer.hashico
 ## VMs
 
 | Name | Base OS | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `ubuntu-2404` | Ubuntu 24.04 LTS | General-purpose desktop |
 | `SIFT` | Ubuntu 24.04 LTS | DFIR forensics workstation |
 | `REMnux` | Ubuntu 20.04 LTS | Malware analysis workstation |

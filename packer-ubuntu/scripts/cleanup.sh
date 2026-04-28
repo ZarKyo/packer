@@ -32,9 +32,7 @@ else
 	ZERO_FILE="$HOME/zero"
 
 	# Get disk space information for /
-	TOTAL_SPACE_KB=$(df / --output=size | tail -n 1)
 	AVAILABLE_SPACE_KB=$(df / --output=avail | tail -n 1)
-	TOTAL_SPACE_MB=$((TOTAL_SPACE_KB / 1024))
 	AVAILABLE_SPACE_MB=$((AVAILABLE_SPACE_KB / 1024))
 
 	# Calculate 95% of available space (in MB)

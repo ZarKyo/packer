@@ -5,4 +5,4 @@ $BASE="remnux"
 $CONF_NAME="remnux"
 $VM_DIR_NAME="REMnux"
 
-Create-VirtualMachine $BASE $CONF_NAME $VM_DIR_NAME
+New-VirtualMachine $BASE $CONF_NAME $VM_DIR_NAME
