@@ -1,4 +1,4 @@
-#cloud-config
+# cloud-config
 autoinstall:
   version: 1
   drivers:
@@ -30,12 +30,13 @@ autoinstall:
   storage:
     layout:
       name: lvm
+      sizing-policy: all # Forces the use of all available space
     config:
       - type: disk
         id: disk0
         match:
           size: largest
-        wipe: superblock
+        wipe: superblock-recursive  # Cleans ALL signatures (LVM, partitions, etc.)
         ptable: gpt
         path: /dev/sda
       - type: partition
@@ -43,10 +44,12 @@ autoinstall:
         device: disk0
         size: 2G
         flag: boot
+        wipe: superblock
       - type: partition
         id: partition_lvm
         device: disk0
         size: -1  # Use all the remaining space
+        wipe: superblock
       - type: lvm_volgroup
         id: vg0
         devices:
@@ -55,7 +58,7 @@ autoinstall:
         id: lv_root
         name: root
         volgroup: vg0
-        size: -1  # Use all the remaining space
+        size: -1  # Use all the remaining space in vg0
       - type: lvm_partition
         id: lv_swap
         name: swap
@@ -64,11 +67,11 @@ autoinstall:
       - type: format
         id: format_boot
         volume: partition_boot
-        fstype: ext4 # or btrfs / xfs
+        fstype: ext4  # or btrfs / xfs
       - type: format
         id: format_root
         volume: lv_root
-        fstype: ext4 # or btrfs / xfs
+        fstype: ext4  # or btrfs / xfs
       - type: format
         id: format_swap
         volume: lv_swap

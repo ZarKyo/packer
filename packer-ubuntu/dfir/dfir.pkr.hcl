@@ -151,14 +151,13 @@ build {
         "../scripts/setup.sh",
         "../scripts/disable_ipv6.sh",
         "../scripts/gui.sh",
-        "../scripts/faster-boot.sh"
+        "../scripts/faster-boot.sh",
+        "../scripts/disable-aptdaily.sh"
     ]
   }
 
   provisioner "shell" {
-    execute_command = "echo '${var.password}' | {{ .Vars }} sudo -S -E bash '{{ .Path }}'"
-    scripts         = [
-        "../scripts/disable-aptdaily.sh",
+    execute_command = "{{ .Vars }} bash '{{ .Path }}'"
         "../scripts/sift.sh",
         "../scripts/dfir.sh",
     ]
