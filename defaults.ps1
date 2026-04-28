@@ -21,32 +21,36 @@ $null = $SHARED_RO_NAME, $SHARED_RO_PATH, $SHARED_RW_NAME, $SHARED_RW_PATH
 $env:PACKER_CACHE_DIR = "../packer_cache"
 
 # Functions
-function New-VirtualMachine($BASE, $CONF_NAME, $VM_DIR_NAME) {
-    if (Test-Path $VM_DIR/$VM_DIR_NAME) {
-        Write-Output "Directory for VM exists. Remove it and rerun the script. Exiting."
-        Exit
-    }
+function New-VirtualMachine {
+    [CmdletBinding(SupportsShouldProcess)]
+    param($BASE, $CONF_NAME, $VM_DIR_NAME)
+    if ($PSCmdlet.ShouldProcess($VM_DIR_NAME, 'New')) {
+        if (Test-Path $VM_DIR/$VM_DIR_NAME) {
+            Write-Output "Directory for VM exists. Remove it and rerun the script. Exiting."
+            Exit
+        }
 
-    Set-Location $CONF_NAME
+        Set-Location $CONF_NAME
 
-    packer build -force -var-file ../variables-$BASE.pkrvars.hcl ./$CONF_NAME.pkr.hcl
-    Start-Sleep -s 2
-
-    if (-not (Test-Path $VM_DIR/$VM_DIR_NAME)) {
-        Move-Item ./$VM_DIR_NAME $VM_DIR
+        packer build -force -var-file ../variables-$BASE.pkrvars.hcl ./$CONF_NAME.pkr.hcl
         Start-Sleep -s 2
-    } else {
-        Write-Output "Directory for VM has been created already during packer run. Exiting."
-        Exit
-    }
 
-    if (Test-Path ./shared.ps1) {
-        ./shared.ps1
-    }
+        if (-not (Test-Path $VM_DIR/$VM_DIR_NAME)) {
+            Move-Item ./$VM_DIR_NAME $VM_DIR
+            Start-Sleep -s 2
+        } else {
+            Write-Output "Directory for VM has been created already during packer run. Exiting."
+            Exit
+        }
 
-    Set-Location ..
-    vmware.exe -q -t $VM_DIR/$VM_DIR_NAME/$VM_DIR_NAME.vmx
-    Start-Sleep -s 2
+        if (Test-Path ./shared.ps1) {
+            ./shared.ps1
+        }
+
+        Set-Location ..
+        vmware.exe -q -t $VM_DIR/$VM_DIR_NAME/$VM_DIR_NAME.vmx
+        Start-Sleep -s 2
+    }
 }
 
 function Enable-SharedFolder($VM_DIR_NAME) {
