@@ -28,14 +28,12 @@ autoinstall:
     allow-pw: true
     install-server: true
   storage:
-    layout:
-      name: lvm
     config:
       - type: disk
         id: disk0
         match:
           size: largest
-        wipe: superblock
+        wipe: superblock-recursive  # Cleans ALL signatures (LVM, partitions, etc.)
         ptable: gpt
         path: /dev/sda
       - type: partition
@@ -43,36 +41,39 @@ autoinstall:
         device: disk0
         size: 2G
         flag: boot
+        wipe: superblock
       - type: partition
         id: partition_lvm
         device: disk0
         size: -1  # Use all the remaining space
+        wipe: superblock
       - type: lvm_volgroup
         id: vg0
+        name: vg0  # Actual VG name (required)
         devices:
           - partition_lvm
-      - type: lvm_partition
-        id: lv_root
-        name: root
-        volgroup: vg0
-        size: -1  # Use all the remaining space
       - type: lvm_partition
         id: lv_swap
         name: swap
         volgroup: vg0
-        size: 2G  # Size for the swap
+        size: 2G  # Swap must be declared before root (which uses size: -1)
+      - type: lvm_partition
+        id: lv_root
+        name: root
+        volgroup: vg0
+        size: -1  # Use all the remaining space in vg0
       - type: format
         id: format_boot
         volume: partition_boot
-        fstype: ext4
-      - type: format
-        id: format_root
-        volume: lv_root
-        fstype: ext4
+        fstype: ext4  # or btrfs / xfs
       - type: format
         id: format_swap
         volume: lv_swap
         fstype: swap
+      - type: format
+        id: format_root
+        volume: lv_root
+        fstype: ext4  # or btrfs / xfs
       - type: mount
         id: mount_boot
         device: format_boot
