@@ -52,7 +52,7 @@ jobs:
           - { dir: remnux,      vars: variables-remnux.pkrvars.hcl }
           - { dir: dfir,        vars: variables-sift.pkrvars.hcl }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: hashicorp/setup-packer@v3
       - name: Packer init
         working-directory: packer-ubuntu/${{ matrix.template.dir }}
