@@ -64,7 +64,7 @@ make sift
 make remnux
 make dfir
 make all        # build all four
-make dist-clean # remove ISO cache
+make dist-clean # remove packer_cache/
 ```
 
 Each build:
@@ -74,6 +74,38 @@ Each build:
 3. Takes an `Installed` snapshot
 4. Moves the VM to `$VM_DIR`, opens it in VMware, and sets up shared folders
 5. Takes a final `Secure` snapshot
+
+### Provisioning scripts
+
+All VM templates share the same `scripts/` directory. Scripts run in this order:
+
+| Script | VMs | Role |
+| ------ | --- | ---- |
+| `setup.sh` | all | Base packages (git, open-vm-tools, zsh, vim, tmux, wget) + sudo/upgrade config |
+| `disable_ipv6.sh` | all | Disable IPv6 |
+| `gui.sh` | all | Install GNOME desktop, Firefox, xorg, fonts |
+| `faster-boot.sh` | all | Mask `systemd-networkd-wait-online` (VMware workaround) |
+| `disable-aptdaily.sh` | SIFT, REMnux, DFIR | Disable apt timers to avoid build conflicts |
+| `sift.sh` / `remnux.sh` | per-VM | Install SIFT or REMnux toolset |
+| `dfir.sh` | DFIR | Installs REMnux as addon on top of SIFT (`remnux install --mode=addon`) |
+| `set-preferences.sh` | ubuntu-2404 | Configure GNOME dock and desktop settings (run as VM user) |
+| `machine-id.sh` | all | Clear `/etc/machine-id` so a fresh ID is generated on first boot |
+| `cleanup.sh` | all | Remove temp files, apt clean/autoremove, optional disk zero-fill |
+
+`cleanup.sh` skips the zero-fill step if more than 60 GB of disk space is free.
+
+## Export
+
+`export-ova.ps1` exports a built VM to OVA format using `ovftool`. The VM must be powered off first.
+
+```powershell
+.\export-ova.ps1 -VM SIFT
+.\export-ova.ps1 -VM REMnux
+.\export-ova.ps1 -VM ubuntu-2404
+.\export-ova.ps1 -VM SIFT -OutputDir D:\exports
+```
+
+Uses `--diskMode=thin` so the OVA only contains written data.
 
 ## Lint
 
