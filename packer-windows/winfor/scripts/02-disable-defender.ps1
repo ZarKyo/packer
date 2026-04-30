@@ -1,10 +1,10 @@
-$ErrorActionPreference = "SilentlyContinue"
+﻿$ErrorActionPreference = "SilentlyContinue"
 
 # Forensics VMs cannot have Defender quarantining SIFT/REMnux tools or malware
 # samples. Tamper Protection blocks Set-MpPreference at runtime, so the durable
 # fix is the Group Policy registry keys — they are honored after reboot.
 
-Write-Host "Applying Defender Group Policy registry keys"
+Write-Output "Applying Defender Group Policy registry keys"
 
 $gpRoots = @(
     "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender",
@@ -41,5 +41,5 @@ Set-MpPreference -MAPSReporting             0     -ErrorAction SilentlyContinue
 # Belt-and-suspenders for the build phase
 Add-MpPreference -ExclusionPath "C:\" -ErrorAction SilentlyContinue
 
-Write-Host "Defender policy applied (full effect after next reboot)."
+Write-Output "Defender policy applied (full effect after next reboot)."
 exit 0

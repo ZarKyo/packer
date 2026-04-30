@@ -12,7 +12,7 @@ if (-not $Mode)       { $Mode = "dedicated" }
 $url = "https://raw.githubusercontent.com/digitalsleuth/WIN-FOR/main/winfor-cli.ps1"
 $out = "C:\winfor-cli.ps1"
 
-Write-Host "Downloading winfor-cli.ps1 from $url"
+Write-Output "Downloading winfor-cli.ps1 from $url"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 Invoke-WebRequest -Uri $url -OutFile $out -UseBasicParsing
 
@@ -27,7 +27,7 @@ if ($XPass)      { $arguments += @("-XPass", $XPass) }
 $logArgs = $arguments | ForEach-Object {
     if ($_ -eq $XPass -and $XPass) { "***" } else { $_ }
 }
-Write-Host "Invoking: $out $logArgs"
+Write-Output "Invoking: $out $logArgs"
 
 & $out @arguments
 $rc = $LASTEXITCODE

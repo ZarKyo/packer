@@ -5,11 +5,11 @@ $ErrorActionPreference = "Stop"
 $url = "https://aka.ms/dotnet/8.0/windowsdesktop-runtime-win-x64.exe"
 $out = Join-Path $env:TEMP "dotnet8-desktop.exe"
 
-Write-Host "Downloading .NET 8 Desktop Runtime from $url"
+Write-Output "Downloading .NET 8 Desktop Runtime from $url"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 Invoke-WebRequest -Uri $url -OutFile $out -UseBasicParsing
 
-Write-Host "Installing"
+Write-Output "Installing"
 $proc = Start-Process -FilePath $out -ArgumentList @("/install", "/quiet", "/norestart") -Wait -PassThru
 Remove-Item $out -Force -ErrorAction SilentlyContinue
 

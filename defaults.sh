@@ -3,11 +3,11 @@
 # Bash equivalent of defaults.ps1 — source this file from shared.sh scripts.
 # Edit the three path variables below for your environment.
 
-SHARED_RO_NAME="ro"
-SHARED_RO_PATH="$HOME/VMs/Shared/ro"
+export SHARED_RO_NAME="ro"
+export SHARED_RO_PATH="$HOME/VMs/Shared/ro"
 
-SHARED_RW_NAME="rw"
-SHARED_RW_PATH="$HOME/VMs/Shared/rw"
+export SHARED_RW_NAME="rw"
+export SHARED_RW_PATH="$HOME/VMs/Shared/rw"
 
 VM_DIR="$HOME/vmware"
 
