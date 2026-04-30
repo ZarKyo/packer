@@ -1,6 +1,6 @@
 . ../../defaults.ps1
 
-$VM = "ubuntu-2004"
+$VM = "REMNUX"
 
 Start-VM $VM | Out-Null
 
