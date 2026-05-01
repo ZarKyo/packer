@@ -119,10 +119,10 @@ source "vmware-iso" "winfor" {
   // boot_wait = "-1s" disables the initial wait and starts sending keys immediately.
   boot_command = [
     "<enter><wait><enter><wait><enter><wait><enter><wait><enter><wait>",
-    "<enter><wait><enter><wait><enter><wait><enter><wait><enter><wait>",
-    "<enter><wait><enter><wait><enter>"
+    "<enter><wait><enter><wait><enter><wait><enter><wait90><enter><wait>",
+    "<enter><wait3><enter><wait><enter>"
   ]
-  boot_wait = "-1s"
+  boot_wait    = "-1s"
 
   iso_urls     = var.iso_urls_windows
   iso_checksum = var.iso_checksum_windows
@@ -159,7 +159,6 @@ source "vmware-iso" "winfor" {
   usb                  = true
 
   // VMware Tools ISO is uploaded by Packer and mounted later by 01-vmware-tools.ps1
-  tools_mode          = "upload"
   tools_upload_flavor = "windows"
   tools_upload_path   = "C:\\Windows\\Temp\\windows.iso"
 

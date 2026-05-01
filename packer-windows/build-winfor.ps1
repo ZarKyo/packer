@@ -1,4 +1,11 @@
-﻿# Load defaults
+﻿#Requires -Version 5.1
+param(
+    # Path to a local Windows 11 ISO. When omitted, the script fetches the
+    # Windows 11 Enterprise evaluation ISO from the Microsoft Evaluation Center.
+    [string]$IsoPath
+)
+
+# Load defaults
 . ../defaults.ps1
 
 # Selects the packer variables file: variables-$BASE.pkrvars.hcl
@@ -11,10 +18,27 @@ $CONF_NAME   = "winfor"
 # Output folder name used by VMware and when moving the VM to $VM_DIR
 $VM_DIR_NAME = "WIN-FOR"
 
-# Fetch (or reuse cached) Windows 11 ISO from the Microsoft Evaluation Center.
-# Resolves the fwlink redirect at runtime — no hardcoded URL to maintain.
-# The ISO is stored in packer-windows\iso\ and excluded from git.
-$iso = & "$PSScriptRoot\fetch-win-iso.ps1"
+# Resolve ISO: use the provided local file or fetch from the Evaluation Center.
+if ($IsoPath) {
+    if (-not (Test-Path -LiteralPath $IsoPath)) {
+        Write-Error "ISO not found: $IsoPath"
+        exit 1
+    }
+    $IsoPath = (Resolve-Path -LiteralPath $IsoPath).ProviderPath
+    Write-Information "[build-winfor] Using local ISO: $IsoPath"
+    Write-Information "[build-winfor] Computing SHA256 (may take a minute)..."
+    $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $IsoPath).Hash.ToLower()
+    Write-Information "[build-winfor] sha256:$hash"
+    $iso = [PSCustomObject]@{
+        Path     = $IsoPath
+        Checksum = "sha256:$hash"
+    }
+} else {
+    # Fetch (or reuse cached) Windows 11 ISO from the Microsoft Evaluation Center.
+    # Resolves the fwlink redirect at runtime — no hardcoded URL to maintain.
+    # The ISO is stored in packer-windows\iso\ and excluded from git.
+    $iso = & "$PSScriptRoot\fetch-win-iso.ps1"
+}
 
 # Write a temporary var file that overrides the ISO placeholders in
 # variables-winfor.pkrvars.hcl with the actual local path and checksum.
