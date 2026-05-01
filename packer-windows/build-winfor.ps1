@@ -1,4 +1,4 @@
-# Load defaults
+﻿# Load defaults
 . ../defaults.ps1
 
 # Selects the packer variables file: variables-$BASE.pkrvars.hcl

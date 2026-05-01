@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Downloads and caches the Windows 11 Enterprise evaluation ISO from the
@@ -22,13 +22,14 @@ param(
 )
 
 Set-StrictMode -Version Latest
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference  = "Stop"
+$InformationPreference  = "Continue"
 
 $EvalUrl = "https://www.microsoft.com/en-us/evalcenter/download-windows-11-enterprise"
 
 # --- Step 1: find the fwlink download URL on the evaluation center page ------
 
-Write-Host "[fetch-win-iso] Fetching evaluation center page..."
+Write-Information "[fetch-win-iso] Fetching evaluation center page..."
 $page = Invoke-WebRequest -Uri $EvalUrl -UseBasicParsing
 
 # The page contains anchor tags like:
@@ -66,7 +67,7 @@ iso_checksum_windows directly in variables-winfor.pkrvars.hcl.
 
 # --- Step 2: resolve the fwlink redirect to get the final CDN URL ------------
 
-Write-Host "[fetch-win-iso] Resolving redirect for: $fwLink"
+Write-Information "[fetch-win-iso] Resolving redirect for: $fwLink"
 $realUrl = & curl.exe $fwLink -L -I -o NUL -w '%{url_effective}' -s
 
 if (-not $realUrl -or $realUrl -notmatch '^https?://') {
@@ -74,7 +75,7 @@ if (-not $realUrl -or $realUrl -notmatch '^https?://') {
     exit 1
 }
 
-Write-Host "[fetch-win-iso] Resolved URL: $realUrl"
+Write-Information "[fetch-win-iso] Resolved URL: $realUrl"
 
 # --- Step 3: determine local filename and cache path -------------------------
 
@@ -89,24 +90,24 @@ $isoPath = Join-Path $IsoDir $fileName
 # --- Step 4: download if not already cached ----------------------------------
 
 if (Test-Path $isoPath) {
-    Write-Host "[fetch-win-iso] Using cached ISO: $isoPath"
+    Write-Information "[fetch-win-iso] Using cached ISO: $isoPath"
 } else {
     New-Item -ItemType Directory -Force -Path $IsoDir | Out-Null
-    Write-Host "[fetch-win-iso] Downloading $fileName (5-6 GB, this will take a while)..."
+    Write-Information "[fetch-win-iso] Downloading $fileName (5-6 GB, this will take a while)..."
     & curl.exe -L -o $isoPath --retry 10 --retry-all-errors --progress-bar $realUrl
     if ($LASTEXITCODE -ne 0) {
         Remove-Item -Path $isoPath -ErrorAction SilentlyContinue
         Write-Error "Download failed (curl exit code $LASTEXITCODE)."
         exit 1
     }
-    Write-Host "[fetch-win-iso] Download complete."
+    Write-Information "[fetch-win-iso] Download complete."
 }
 
 # --- Step 5: compute SHA256 --------------------------------------------------
 
-Write-Host "[fetch-win-iso] Computing SHA256 (may take a minute)..."
+Write-Information "[fetch-win-iso] Computing SHA256 (may take a minute)..."
 $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $isoPath).Hash.ToLower()
-Write-Host "[fetch-win-iso] sha256:$hash"
+Write-Information "[fetch-win-iso] sha256:$hash"
 
 [PSCustomObject]@{
     Path     = $isoPath

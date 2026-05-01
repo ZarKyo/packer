@@ -1,6 +1,6 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
-# Try to find the High Performance GUID dynamically — works across all Windows editions
+# Try to find the High Performance GUID dynamically â€” works across all Windows editions
 # even if the scheme was renamed or the locale is not English.
 $highPerfGuid = powercfg -l | ForEach-Object {
     if ($_ -match 'High performance') { ($_ -split '\s+')[3] }
