@@ -2,7 +2,7 @@
 
 [![Super-Linter](https://github.com/ZarKyo/packer/actions/workflows/linter.yml/badge.svg)](https://github.com/marketplace/actions/super-linter)
 
-> Based on [reuteras/packer](https://github.com/reuteras/packer), adapted and extended.
+> Based on [reuteras/packer](https://github.com/reuteras/packer) and [reuteras/dfirws](https://github.com/reuteras/dfirws/), adapted and extended.
 
 Automated VMware virtual machine builds using [Packer](https://developer.hashicorp.com/packer). Four VM types are supported, each built from a Ubuntu ISO with unattended installation via cloud-init and configured through provisioning scripts over SSH.
 

@@ -23,7 +23,14 @@ $env:PACKER_CACHE_DIR = "../packer_cache"
 # Functions
 function New-VirtualMachine {
     [CmdletBinding(SupportsShouldProcess)]
-    param($BASE, $CONF_NAME, $VM_DIR_NAME)
+    param(
+        $BASE,
+        $CONF_NAME,
+        $VM_DIR_NAME,
+        # Optional extra -var-file paths passed to packer (relative to $CONF_NAME/).
+        # Used by Windows builds to inject the auto-fetched ISO path and checksum.
+        [string[]]$ExtraVarFiles = @()
+    )
     if ($PSCmdlet.ShouldProcess($VM_DIR_NAME, 'New')) {
         if (Test-Path $VM_DIR/$VM_DIR_NAME) {
             Write-Output "Directory for VM exists. Remove it and rerun the script. Exiting."
@@ -32,7 +39,11 @@ function New-VirtualMachine {
 
         Set-Location $CONF_NAME
 
-        packer build -force -var-file ../variables-$BASE.pkrvars.hcl ./$CONF_NAME.pkr.hcl
+        # Build the list of extra -var-file arguments (flat array for splatting)
+        $extraArgs = @()
+        foreach ($f in $ExtraVarFiles) { $extraArgs += "-var-file"; $extraArgs += $f }
+
+        packer build -force -var-file ../variables-$BASE.pkrvars.hcl @extraArgs ./$CONF_NAME.pkr.hcl
         Start-Sleep -s 2
 
         if (-not (Test-Path $VM_DIR/$VM_DIR_NAME)) {

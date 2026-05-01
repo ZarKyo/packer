@@ -7,8 +7,8 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-mkdir -p ~/src/bin/
-cd  ~/src/bin/ || exit
+mkdir -p ~/src/git/
+cd  ~/src/git/ || exit
 
 curl -fsSL https://raw.githubusercontent.com/ZarKyo/utils/refs/heads/main/bin/screen_lock.sh -o screen_lock.sh
 curl -fsSL https://raw.githubusercontent.com/ZarKyo/utils/refs/heads/main/bin/vmware-mount-shared.sh -o vmware-mount-shared.sh

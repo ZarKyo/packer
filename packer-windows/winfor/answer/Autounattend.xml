@@ -8,8 +8,14 @@
     without enabling vTPM (which requires VM encryption).
   -->
 
+  <!--
+    Pass 1 — windowsPE
+    Runs inside the Windows PE environment before the OS is installed.
+    Handles: hardware check bypasses, disk layout, image selection, and EULA.
+  -->
   <settings pass="windowsPE">
 
+    <!-- Locale and keyboard layout used during setup (not the final OS locale) -->
     <component name="Microsoft-Windows-International-Core-WinPE"
                processorArchitecture="amd64"
                publicKeyToken="31bf3856ad364e35"
@@ -32,6 +38,11 @@
                versionScope="nonSxS"
                xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
 
+      <!--
+        Windows 11 hardware requirement bypasses via HKLM\System\Setup\LabConfig.
+        These registry keys are checked by setup.exe before installation starts.
+        Without them, the installer rejects VMs that lack vTPM or meet minimum specs.
+      -->
       <RunSynchronous>
         <RunSynchronousCommand wcm:action="add">
           <Order>1</Order>
@@ -55,6 +66,12 @@
         </RunSynchronousCommand>
       </RunSynchronous>
 
+      <!--
+        GPT partition layout for UEFI boot (disk 0, wiped):
+          Partition 1 — EFI system partition (500 MB, FAT32, labeled "System")
+          Partition 2 — Microsoft Reserved Partition (16 MB, no format)
+          Partition 3 — Windows primary partition (remaining space, NTFS, labeled "Windows")
+      -->
       <DiskConfiguration>
         <Disk wcm:action="add">
           <DiskID>0</DiskID>
@@ -97,6 +114,11 @@
         </Disk>
       </DiskConfiguration>
 
+      <!--
+        Selects which edition to install from the ISO by image name.
+        ${image_name} is injected by Packer from the variables file (e.g. "Windows 11 Pro").
+        The OS is installed onto partition 3 (the primary NTFS partition defined above).
+      -->
       <ImageInstall>
         <OSImage>
           <InstallFrom>
@@ -112,6 +134,11 @@
         </OSImage>
       </ImageInstall>
 
+      <!--
+        Product key: WillShowUI=OnError means no key prompt unless activation fails.
+        AcceptEula skips the license agreement screen.
+        FullName and Organization are injected by Packer.
+      -->
       <UserData>
         <ProductKey>
           <WillShowUI>OnError</WillShowUI>
@@ -124,8 +151,14 @@
     </component>
   </settings>
 
+  <!--
+    Pass 2 — specialize
+    Runs after the OS files are copied, just before the first boot.
+    Handles: hostname, timezone, and network-related OOBE bypass.
+  -->
   <settings pass="specialize">
 
+    <!-- Sets the machine hostname and timezone injected by Packer -->
     <component name="Microsoft-Windows-Shell-Setup"
                processorArchitecture="amd64"
                publicKeyToken="31bf3856ad364e35"
@@ -136,6 +169,7 @@
       <TimeZone>UTC</TimeZone>
     </component>
 
+    <!-- Final OS locale and keyboard layout (applied to the installed system) -->
     <component name="Microsoft-Windows-International-Core"
                processorArchitecture="amd64"
                publicKeyToken="31bf3856ad364e35"
@@ -165,6 +199,12 @@
 
   </settings>
 
+  <!--
+    Pass 3 — oobeSystem
+    Runs during the Out-Of-Box Experience (first boot wizard).
+    Handles: local account creation, auto-logon, OOBE screen suppression,
+    and first-logon commands that configure the OS for Packer provisioning.
+  -->
   <settings pass="oobeSystem">
     <component name="Microsoft-Windows-Shell-Setup"
                processorArchitecture="amd64"
@@ -173,6 +213,10 @@
                versionScope="nonSxS"
                xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
 
+      <!--
+        Creates the local administrator account injected by Packer.
+        PlainText=true means the password is stored as-is (acceptable for a build VM).
+      -->
       <UserAccounts>
         <LocalAccounts>
           <LocalAccount wcm:action="add">
@@ -188,6 +232,10 @@
         </LocalAccounts>
       </UserAccounts>
 
+      <!--
+        Auto-logs in the user up to 5 times so Packer provisioners can run
+        without waiting for manual login. LogonCount decrements on each reboot.
+      -->
       <AutoLogon>
         <Password>
           <Value>${password}</Value>
@@ -198,53 +246,68 @@
         <Username>${username}</Username>
       </AutoLogon>
 
+      <!-- Suppresses all interactive OOBE screens for a fully unattended setup -->
       <OOBE>
         <HideEULAPage>true</HideEULAPage>
         <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>
         <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
         <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
         <NetworkLocation>Work</NetworkLocation>
+        <!-- ProtectYourPC=3 disables automatic protection settings prompt -->
         <ProtectYourPC>3</ProtectYourPC>
         <SkipMachineOOBE>true</SkipMachineOOBE>
         <SkipUserOOBE>true</SkipUserOOBE>
       </OOBE>
 
+      <!--
+        Commands run on first logon, in order, to prepare the OS for Packer's
+        WinRM-based provisioners. These run as the local admin before any
+        Packer scripts execute.
+      -->
       <FirstLogonCommands>
+        <!-- Allow PowerShell scripts to run without signature checks during the build -->
         <SynchronousCommand wcm:action="add">
           <Order>1</Order>
           <CommandLine>cmd.exe /c powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "Set-ExecutionPolicy Bypass -Scope LocalMachine -Force"</CommandLine>
           <Description>Set execution policy</Description>
         </SynchronousCommand>
+        <!-- Disable UAC so Packer provisioners can run elevated without prompts -->
         <SynchronousCommand wcm:action="add">
           <Order>2</Order>
           <CommandLine>cmd.exe /c reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v EnableLUA /t REG_DWORD /d 0 /f</CommandLine>
           <Description>Disable UAC for the build</Description>
         </SynchronousCommand>
+        <!-- Enable PowerShell remoting: required for Packer's winrm communicator -->
         <SynchronousCommand wcm:action="add">
           <Order>3</Order>
           <CommandLine>cmd.exe /c powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "Enable-PSRemoting -Force -SkipNetworkProfileCheck"</CommandLine>
           <Description>Enable PSRemoting</Description>
         </SynchronousCommand>
+        <!-- Apply default WinRM listener config (HTTP on port 5985) -->
         <SynchronousCommand wcm:action="add">
           <Order>4</Order>
           <CommandLine>cmd.exe /c winrm quickconfig -quiet -force</CommandLine>
           <Description>WinRM quickconfig</Description>
         </SynchronousCommand>
+        <!-- Allow Basic authentication so Packer can connect with username/password -->
         <SynchronousCommand wcm:action="add">
           <Order>5</Order>
           <CommandLine>cmd.exe /c winrm set winrm/config/service/auth @{Basic=&quot;true&quot;}</CommandLine>
           <Description>Allow Basic auth for WinRM</Description>
         </SynchronousCommand>
+        <!-- Allow unencrypted WinRM traffic (HTTP); acceptable for a local build network -->
         <SynchronousCommand wcm:action="add">
           <Order>6</Order>
           <CommandLine>cmd.exe /c winrm set winrm/config/service @{AllowUnencrypted=&quot;true&quot;}</CommandLine>
           <Description>Allow unencrypted WinRM</Description>
         </SynchronousCommand>
+        <!-- Open Windows Firewall for WinRM so Packer can reach port 5985 -->
         <SynchronousCommand wcm:action="add">
           <Order>7</Order>
           <CommandLine>cmd.exe /c netsh advfirewall firewall set rule group="Windows Remote Management" new enable=yes</CommandLine>
           <Description>Open WinRM firewall</Description>
         </SynchronousCommand>
+        <!-- Enable RDP for post-build remote access to the VM -->
         <SynchronousCommand wcm:action="add">
           <Order>8</Order>
           <CommandLine>cmd.exe /c reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f</CommandLine>

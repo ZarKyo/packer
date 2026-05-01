@@ -181,21 +181,25 @@ source "vmware-iso" "winfor" {
 build {
   sources = ["source.vmware-iso.winfor"]
 
-  // Step 1 — install VMware Tools so the host gets graceful shutdown / clipboard / etc.
+  // Step 1 — force network profile to Private (WinRM fails on Public), then install VMware Tools.
   provisioner "powershell" {
-    scripts = ["${path.root}/scripts/01-vmware-tools.ps1"]
+    scripts = [
+      "${path.root}/scripts/00-fixnetwork.ps1",
+      "${path.root}/scripts/01-vmware-tools.ps1",
+    ]
   }
 
   provisioner "windows-restart" {
     restart_timeout = "30m"
   }
 
-  // Step 2 — neutralize Defender and pin the power plan to High Performance
+  // Step 2 — neutralize Defender, pin power plan, and suppress screensaver/timeouts
   // before any long-running download / install kicks off.
   provisioner "powershell" {
     scripts = [
       "${path.root}/scripts/02-disable-defender.ps1",
       "${path.root}/scripts/03-set-powerplan.ps1",
+      "${path.root}/scripts/03b-disable-screensaver.ps1",
     ]
   }
 
