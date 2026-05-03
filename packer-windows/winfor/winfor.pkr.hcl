@@ -118,9 +118,7 @@ source "vmware-iso" "winfor" {
   // Hammer <enter> to clear the "Press any key to boot from CD or DVD" prompt.
   // boot_wait = "-1s" disables the initial wait and starts sending keys immediately.
   boot_command = [
-    "<enter><wait><enter><wait><enter><wait><enter><wait><enter><wait>",
-    "<enter><wait><enter><wait><enter><wait><enter><wait40><enter><wait>",
-    "<enter><wait3><enter><wait><enter>"
+    "<enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><enter><wait><enter>"
   ]
   boot_wait    = "-1s"
 
@@ -138,14 +136,16 @@ source "vmware-iso" "winfor" {
     })
   }
 
-  // Scripts shipped on the virtual floppy. Autounattend.xml invokes these via a:\<name>
-  // during FirstLogonCommands — before Packer's first WinRM connection — to set up
-  // WinRM, RDP, and Windows Updates.
+  // Scripts shipped on the virtual floppy. Autounattend.xml invokes the first four via
+  // a:\<name> during FirstLogonCommands. The last two are manual-use utilities left on
+  // A: after the build so they can be run by hand if needed.
   floppy_files = [
     "scripts/00-fixnetwork.ps1",
     "scripts/01-enable-winrm.ps1",
     "scripts/02-enable-rdp.ps1",
     "scripts/03-win-updates.ps1",
+    "scripts/05-disable-defender.ps1",
+    "scripts/disable-winrm.ps1",
   ]
 
   output_directory = "${var.vm_name}"
@@ -203,11 +203,11 @@ build {
     restart_timeout = "30m"
   }
 
-  // Step 2 — neutralize Defender, pin power plan, and suppress screensaver/timeouts
-  // before any long-running download / install kicks off.
+  // Step 2 — pin power plan and suppress screensaver/timeouts before long installs.
+  // Defender is already disabled by GP registry keys in the specialize pass
+  // (Autounattend.xml Orders 21-29); no provisioner step needed here.
   provisioner "powershell" {
     scripts = [
-      "${path.root}/scripts/05-disable-defender.ps1",
       "${path.root}/scripts/06-set-powerplan.ps1",
       "${path.root}/scripts/07-disable-screensaver.ps1",
     ]
