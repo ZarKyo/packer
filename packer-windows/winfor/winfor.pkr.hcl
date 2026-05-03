@@ -138,6 +138,16 @@ source "vmware-iso" "winfor" {
     })
   }
 
+  // Scripts shipped on the virtual floppy. Autounattend.xml invokes these via a:\<name>
+  // during FirstLogonCommands — before Packer's first WinRM connection — to set up
+  // WinRM, RDP, and Windows Updates.
+  floppy_files = [
+    "scripts/00-fixnetwork.ps1",
+    "scripts/07-enable-winrm.ps1",
+    "scripts/08-enable-rdp.bat",
+    "scripts/09-win-updates.ps1",
+  ]
+
   output_directory = var.vm_name
 
   // Communicator: WinRM (Autounattend opens it via FirstLogonCommands)

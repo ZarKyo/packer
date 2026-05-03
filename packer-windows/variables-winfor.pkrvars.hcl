@@ -16,7 +16,7 @@ xways_pass = ""
 
 // Must match an /IMAGE/NAME inside the install.wim of your ISO. Common values:
 //   "Windows 11 Pro", "Windows 11 Pro for Workstations", "Windows 11 Enterprise"
-windows_image_name = "Windows 11 Pro"
+windows_image_name = "Windows 11 Enterprise"
 
 // Microsoft does not publish stable direct ISO URLs. Either:
 //   1. Download the Win11 x64 English ISO from microsoft.com and host it

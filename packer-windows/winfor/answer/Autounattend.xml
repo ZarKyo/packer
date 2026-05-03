@@ -2,16 +2,43 @@
 <unattend xmlns="urn:schemas-microsoft-com:unattend">
 
   <!--
-    Windows 11 unattended install for WIN-FOR Packer build.
-    Targets UEFI/GPT. Bypasses TPM 2.0, Secure Boot, RAM, CPU and storage
-    checks in the windowsPE pass so the install works on VMware Workstation
-    without enabling vTPM (which requires VM encryption).
+    ============================================================================
+    Windows 11 unattended install — WIN-FOR Packer build
+    ============================================================================
+
+    Target  : VMware Workstation, UEFI/GPT, no vTPM
+    Image   : Windows 11 Pro (selected by /IMAGE/NAME from the ISO's install.wim)
+    Reached : via virtual floppy (Packer's `floppy_content`); Windows Setup
+              auto-discovers Autounattend.xml on attached floppy/CD volumes.
+
+    Templating
+      ${username}, ${password}, ${hostname}, ${image_name} are injected by Packer
+      from variables defined in winfor.pkr.hcl (templatefile() call).
+
+    Floppy contents (from `floppy_files` in winfor.pkr.hcl)
+      a:\00-fixnetwork.ps1     — force network → Private (COM)
+      a:\07-enable-winrm.ps1   — full WinRM/firewall/service setup
+      a:\08-enable-rdp.bat     — enable RDP
+      a:\09-win-updates.ps1    — Windows Updates loop (long, reboots)
+
+    Packer hardware-check bypasses are applied in the windowsPE pass so the
+    install proceeds on VMs without TPM 2.0 / Secure Boot / minimum RAM/CPU.
+    Enabling vTPM in VMware would require full VM encryption, which we avoid.
+
+    Setup runs in three passes (in order): windowsPE → specialize → oobeSystem.
+    ============================================================================
   -->
 
   <!--
+    ============================================================================
     Pass 1 — windowsPE
-    Runs inside the Windows PE environment before the OS is installed.
-    Handles: hardware check bypasses, disk layout, image selection, and EULA.
+    ============================================================================
+    Runs inside the Windows Preinstallation Environment (the live media), BEFORE
+    any files are copied to the target disk. This is the only pass where we can:
+      - bypass hardware/TPM checks (LabConfig keys read by setup.exe)
+      - control disk partitioning
+      - select the install image and target partition
+      - accept the EULA and pre-set the registered owner
   -->
   <settings pass="windowsPE">
 
@@ -152,9 +179,19 @@
   </settings>
 
   <!--
+    ============================================================================
     Pass 2 — specialize
-    Runs after the OS files are copied, just before the first boot.
-    Handles: hostname, timezone, and network-related OOBE bypass.
+    ============================================================================
+    Runs once the OS files are copied to disk and the system has booted into the
+    target install (still pre-OOBE). This pass handles machine-identity settings
+    (hostname, timezone, locale) and applies HKLM-level policy registry values
+    while no user is logged on yet — anything we set here is in place before
+    OOBE / FirstLogonCommands run.
+
+    The big block of RunSynchronousCommand entries on the Deployment component
+    locks down telemetry, advertising, location, Cortana, error reporting,
+    activity history, and consumer features at machine scope (HKLM). HKCU-level
+    user equivalents are applied later in oobeSystem's FirstLogonCommands.
   -->
   <settings pass="specialize">
 
@@ -287,10 +324,22 @@
   </settings>
 
   <!--
+    ============================================================================
     Pass 3 — oobeSystem
-    Runs during the Out-Of-Box Experience (first boot wizard).
-    Handles: local account creation, auto-logon, OOBE screen suppression,
-    and first-logon commands that configure the OS for Packer provisioning.
+    ============================================================================
+    Runs during the Out-Of-Box Experience (the welcome wizard on first boot).
+    This is the last pass; once it completes, the user session starts.
+
+    What this pass sets up:
+      - The local administrator account (${username}) — required so Packer can
+        log in via WinRM.
+      - AutoLogon (5 reboots) — so Packer-triggered restarts don't stall on the
+        login screen.
+      - OOBE screen suppression — hides EULA, OEM, online-account, wireless
+        setup, etc., for a fully unattended install.
+      - FirstLogonCommands — the critical block that bootstraps WinRM, RDP,
+        privacy tweaks, and Windows Updates BEFORE Packer attempts its first
+        winrm connection.
   -->
   <settings pass="oobeSystem">
     <component name="Microsoft-Windows-Shell-Setup"
@@ -347,105 +396,161 @@
       </OOBE>
 
       <!--
-        Commands run on first logon, in order, to prepare the OS for Packer's
-        WinRM-based provisioners. These run as the local admin before any
-        Packer scripts execute.
+        ========================================================================
+        FirstLogonCommands — bootstrap sequence (runs as local admin, in order)
+        ========================================================================
+        These commands run synchronously on the very first user logon, BEFORE
+        Packer ever attempts its first WinRM connection. The ordering matters:
+
+          1   Set ExecutionPolicy        Allow unsigned PowerShell scripts
+          2   Disable UAC                Avoid elevation prompts blocking automation
+          3   Fix network → Private      Pre-requisite for WinRM (must be before #4)
+          4   Configure WinRM            Listener, firewall, service auto-start
+          5   Enable RDP                 Post-build remote access (port 3389)
+          6-11 HKCU privacy/telemetry    User-level counterparts of HKLM tweaks
+                                         from the specialize pass
+          12  Install Windows Updates    Long-running; reboots, then re-enables WinRM
+
+        Notes
+          - cmd.exe /c wrapper: FirstLogonCommands runs each command via the
+            shell at first-logon context. Wrapping in cmd.exe /c ensures stable
+            quoting/redirection across PowerShell, .bat, and reg.exe invocations.
+          - a:\ prefix: scripts come from Packer's virtual floppy, mounted as A:.
+          - Floppy script names mirror the execution order in this block:
+            00 (fixnetwork) < 07 (enable-winrm) < 08 (enable-rdp) < 09 (win-updates).
       -->
       <FirstLogonCommands>
-        <!-- Force network profile to Private so WinRM can accept connections from the host.
-             Must run first — WinRM on a Public profile only allows LocalSubnet. -->
+
+        <!-- Order 1 — allow unsigned PowerShell scripts for the rest of the build -->
         <SynchronousCommand wcm:action="add">
           <Order>1</Order>
-          <CommandLine>cmd.exe /c powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Private"</CommandLine>
-          <Description>Set network profile to Private</Description>
-        </SynchronousCommand>
-        <!-- Allow PowerShell scripts to run without signature checks during the build -->
-        <SynchronousCommand wcm:action="add">
-          <Order>2</Order>
           <CommandLine>cmd.exe /c powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "Set-ExecutionPolicy Bypass -Scope LocalMachine -Force"</CommandLine>
           <Description>Set execution policy</Description>
         </SynchronousCommand>
-        <!-- Disable UAC so Packer provisioners can run elevated without prompts -->
+
+        <!--
+          Order 2 — disable UAC (EnableLUA=0).
+          Without this, Packer's elevated provisioners would trigger UAC prompts
+          that no one is there to click. Restored to default by 99-cleanup.ps1.
+        -->
         <SynchronousCommand wcm:action="add">
-          <Order>3</Order>
+          <Order>2</Order>
           <CommandLine>cmd.exe /c reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v EnableLUA /t REG_DWORD /d 0 /f</CommandLine>
           <Description>Disable UAC for the build</Description>
         </SynchronousCommand>
-        <!-- Enable PowerShell remoting: required for Packer's winrm communicator -->
+
+        <!--
+          Order 3 — force every network connection to "Private" via COM
+          (INetworkListManager). MUST run before Order 4 (WinRM) because:
+            - WinRM's HTTP listener and firewall rule default to Private/Domain only.
+            - At first logon, Windows often hasn't classified the adapter yet, so
+              Get-NetConnectionProfile / NetConnectionCategory return "Public" or
+              "Unidentified" — the COM interface works regardless.
+        -->
+        <SynchronousCommand wcm:action="add">
+          <Order>3</Order>
+          <CommandLine>cmd.exe /c powershell.exe -ExecutionPolicy Bypass -NoProfile -File a:\00-fixnetwork.ps1</CommandLine>
+          <Description>Force network connections to Private</Description>
+        </SynchronousCommand>
+
+        <!--
+          Order 4 — full WinRM bring-up (Enable-PSRemoting, listener on 5985,
+          MaxTimeoutms=1800000, MaxMemoryPerShellMB=800, Basic auth,
+          AllowUnencrypted, firewall rules for HTTP-In, service auto-start +
+          restart). Once this returns, Packer's WinRM communicator can connect.
+        -->
         <SynchronousCommand wcm:action="add">
           <Order>4</Order>
-          <CommandLine>cmd.exe /c powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "Enable-PSRemoting -Force -SkipNetworkProfileCheck"</CommandLine>
-          <Description>Enable PSRemoting</Description>
+          <CommandLine>cmd.exe /c powershell.exe -ExecutionPolicy Bypass -NoProfile -File a:\07-enable-winrm.ps1</CommandLine>
+          <Description>Enable WinRM (listener/firewall/service)</Description>
         </SynchronousCommand>
-        <!-- Apply default WinRM listener config (HTTP on port 5985) -->
+
+        <!-- Order 5 — enable RDP (port 3389) so the finished VM is reachable post-build -->
         <SynchronousCommand wcm:action="add">
           <Order>5</Order>
-          <CommandLine>cmd.exe /c winrm quickconfig -quiet -force</CommandLine>
-          <Description>WinRM quickconfig</Description>
-        </SynchronousCommand>
-        <!-- Allow Basic authentication so Packer can connect with username/password -->
-        <SynchronousCommand wcm:action="add">
-          <Order>6</Order>
-          <CommandLine>cmd.exe /c winrm set winrm/config/service/auth @{Basic=&quot;true&quot;}</CommandLine>
-          <Description>Allow Basic auth for WinRM</Description>
-        </SynchronousCommand>
-        <!-- Allow unencrypted WinRM traffic (HTTP); acceptable for a local build network -->
-        <SynchronousCommand wcm:action="add">
-          <Order>7</Order>
-          <CommandLine>cmd.exe /c winrm set winrm/config/service @{AllowUnencrypted=&quot;true&quot;}</CommandLine>
-          <Description>Allow unencrypted WinRM</Description>
-        </SynchronousCommand>
-        <!-- Open Windows Firewall for WinRM so Packer can reach port 5985 -->
-        <SynchronousCommand wcm:action="add">
-          <Order>8</Order>
-          <CommandLine>cmd.exe /c netsh advfirewall firewall set rule group="Windows Remote Management" new enable=yes</CommandLine>
-          <Description>Open WinRM firewall</Description>
-        </SynchronousCommand>
-        <!-- Enable RDP for post-build remote access to the VM -->
-        <SynchronousCommand wcm:action="add">
-          <Order>9</Order>
-          <CommandLine>cmd.exe /c reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f</CommandLine>
+          <CommandLine>cmd.exe /c a:\08-enable-rdp.bat</CommandLine>
           <Description>Enable RDP</Description>
         </SynchronousCommand>
-        <!-- Tailored experiences (user-level) -->
+
+        <!--
+          Orders 6-11 — HKCU privacy/telemetry hardening for the just-created
+          ${username} account. Machine-scope (HKLM) equivalents are set in the
+          specialize pass; these are the per-user counterparts that policy
+          can't reach until a profile exists.
+        -->
+
+        <!-- Order 6 — disable tailored experiences (Microsoft personalized ads/tips based on diagnostic data) -->
         <SynchronousCommand wcm:action="add">
-          <Order>10</Order>
+          <Order>6</Order>
           <CommandLine>cmd.exe /c reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Privacy" /v TailoredExperiencesWithDiagnosticDataEnabled /t REG_DWORD /d 0 /f</CommandLine>
           <Description>Disable tailored experiences</Description>
         </SynchronousCommand>
-        <!-- Advertising ID (user-level) -->
+
+        <!-- Order 7 — disable the per-user advertising ID used by UWP apps for ad targeting -->
         <SynchronousCommand wcm:action="add">
-          <Order>11</Order>
+          <Order>7</Order>
           <CommandLine>cmd.exe /c reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo" /v Enabled /t REG_DWORD /d 0 /f</CommandLine>
           <Description>Disable advertising ID</Description>
         </SynchronousCommand>
-        <!-- Inking and typing improvement (user-level) -->
+
+        <!--
+          Orders 8-10 — disable inking/typing personalization (collection of
+          handwriting samples, typed text, and contact harvesting that Windows
+          uses to "improve" predictions and IME).
+        -->
         <SynchronousCommand wcm:action="add">
-          <Order>12</Order>
+          <Order>8</Order>
           <CommandLine>cmd.exe /c reg add "HKCU\SOFTWARE\Microsoft\InputPersonalization" /v RestrictImplicitInkCollection /t REG_DWORD /d 1 /f</CommandLine>
           <Description>Disable implicit ink collection</Description>
         </SynchronousCommand>
         <SynchronousCommand wcm:action="add">
-          <Order>13</Order>
+          <Order>9</Order>
           <CommandLine>cmd.exe /c reg add "HKCU\SOFTWARE\Microsoft\InputPersonalization" /v RestrictImplicitTextCollection /t REG_DWORD /d 1 /f</CommandLine>
           <Description>Disable implicit text collection</Description>
         </SynchronousCommand>
         <SynchronousCommand wcm:action="add">
-          <Order>14</Order>
+          <Order>10</Order>
           <CommandLine>cmd.exe /c reg add "HKCU\SOFTWARE\Microsoft\InputPersonalization\TrainedDataStore" /v HarvestContacts /t REG_DWORD /d 0 /f</CommandLine>
           <Description>Disable contact harvesting for typing personalization</Description>
         </SynchronousCommand>
-        <!-- Feedback frequency: never -->
+
+        <!-- Order 11 — suppress the periodic "How are we doing?" feedback prompts -->
         <SynchronousCommand wcm:action="add">
-          <Order>15</Order>
+          <Order>11</Order>
           <CommandLine>cmd.exe /c reg add "HKCU\SOFTWARE\Microsoft\Siuf\Rules" /v NumberOfSIUFInPeriod /t REG_DWORD /d 0 /f</CommandLine>
           <Description>Disable feedback prompts</Description>
         </SynchronousCommand>
+
+        <!--
+          Order 12 — Windows Updates loop (a:\09-win-updates.ps1).
+          This is the long one: polls Microsoft Update, downloads applicable
+          updates, installs them, reboots when needed, and resumes via a Run
+          registry entry (HKLM\...\CurrentVersion\Run\InstallWindowsUpdates)
+          until no updates remain. Expect 30 min to a few hours depending on
+          the ISO baseline.
+
+          Why we don't add an Order 13 to re-enable WinRM after this:
+          FirstLogonCommands terminates as soon as Order 12 returns (which is
+          on the FIRST Restart-Computer inside win-updates.ps1). After that
+          first reboot, the script resumes via the Run key — NOT via
+          FirstLogonCommands. So an Order 13 here would fire too early and
+          never run after the LAST WU-triggered reboot. Instead, the script
+          itself calls a:\07-enable-winrm.ps1 on each of its 3 exit paths
+          (cycle limit, normal end, no updates found), guaranteeing WinRM is
+          restored on the actual final iteration.
+        -->
+        <SynchronousCommand wcm:action="add">
+          <Order>12</Order>
+          <CommandLine>cmd.exe /c powershell.exe -ExecutionPolicy Bypass -NoProfile -File a:\09-win-updates.ps1</CommandLine>
+          <Description>Install Windows Updates</Description>
+        </SynchronousCommand>
+
       </FirstLogonCommands>
 
       <RegisteredOrganization>WIN-FOR</RegisteredOrganization>
       <RegisteredOwner>${username}</RegisteredOwner>
       <TimeZone>Romance Standard Time</TimeZone>
+
     </component>
   </settings>
 
