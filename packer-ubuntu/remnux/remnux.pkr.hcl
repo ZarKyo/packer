@@ -144,6 +144,7 @@ source "vmware-iso" "remnux-2004" {
 
   vmx_data = {
     "annotation"    : "Packer version: ${packer.version}|0D|0AVM creation time: ${formatdate("DD MM YYYY hh:mm ZZZ", timestamp())}|0D|0AUsername: ${var.username}|0D|0APassword: ${var.password}",
+    "firmware"      : "efi",
   }
 }
 

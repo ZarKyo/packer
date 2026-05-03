@@ -38,7 +38,7 @@ jobs:
           VALIDATE_ALL_CODEBASE: false              # Only lint changed files in PRs
           VALIDATE_BASH: true
           VALIDATE_POWERSHELL: true
-          VALIDATE_MARKDOWN: true
+          VALIDATE_XML: true
           VALIDATE_YAML: true
 
   packer-validate:
@@ -47,16 +47,17 @@ jobs:
     strategy:
       matrix:
         template:
-          - { dir: ubuntu-2404, vars: variables-ubuntu-2404.pkrvars.hcl }
-          - { dir: sift,        vars: variables-sift.pkrvars.hcl }
-          - { dir: remnux,      vars: variables-remnux.pkrvars.hcl }
-          - { dir: dfir,        vars: variables-sift.pkrvars.hcl }
+          - { base: packer-ubuntu,   dir: ubuntu-2404, vars: variables-ubuntu-2404.pkrvars.hcl }
+          - { base: packer-ubuntu,   dir: sift,        vars: variables-sift.pkrvars.hcl }
+          - { base: packer-ubuntu,   dir: remnux,      vars: variables-remnux.pkrvars.hcl }
+          - { base: packer-ubuntu,   dir: dfir,        vars: variables-sift.pkrvars.hcl }
+          - { base: packer-windows,  dir: winfor,      vars: variables-winfor.pkrvars.hcl }
     steps:
       - uses: actions/checkout@v6
       - uses: hashicorp/setup-packer@v3
       - name: Packer init
-        working-directory: packer-ubuntu/${{ matrix.template.dir }}
+        working-directory: ${{ matrix.template.base }}/${{ matrix.template.dir }}
         run: packer init .
       - name: Packer validate
-        working-directory: packer-ubuntu/${{ matrix.template.dir }}
+        working-directory: ${{ matrix.template.base }}/${{ matrix.template.dir }}
         run: packer validate -var-file=../${{ matrix.template.vars }} .

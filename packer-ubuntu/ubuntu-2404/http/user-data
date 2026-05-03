@@ -33,14 +33,22 @@ autoinstall:
         id: disk0
         match:
           size: largest
-        wipe: superblock-recursive  # Cleans ALL signatures (LVM, partitions, etc.)
+        # Cleans ALL signatures (LVM, partitions, etc.)
+        wipe: superblock-recursive
         ptable: gpt
         path: /dev/sda
+      - type: partition
+        id: partition_esp
+        device: disk0
+        size: 512M
+        flag: esp
+        wipe: superblock
+        # GPT requires this on the efi partition
+        grub_device: true
       - type: partition
         id: partition_boot
         device: disk0
         size: 2G
-        flag: boot
         wipe: superblock
       - type: partition
         id: partition_lvm
@@ -49,23 +57,31 @@ autoinstall:
         wipe: superblock
       - type: lvm_volgroup
         id: vg0
-        name: vg0  # Actual VG name (required)
+        # Actual VG name (required)
+        name: vg0
         devices:
           - partition_lvm
       - type: lvm_partition
         id: lv_swap
         name: swap
         volgroup: vg0
-        size: 2G  # Swap must be declared before root (which uses size: -1)
+        # Swap must be declared before root (which uses size: -1)
+        size: 2G
       - type: lvm_partition
         id: lv_root
         name: root
         volgroup: vg0
-        size: -1  # Use all the remaining space in vg0
+        # Use all the remaining space in vg0
+        size: -1
+      - type: format
+        id: format_esp
+        volume: partition_esp
+        fstype: fat32
       - type: format
         id: format_boot
         volume: partition_boot
-        fstype: ext4  # or btrfs / xfs
+        # or btrfs / xfs
+        fstype: ext4
       - type: format
         id: format_swap
         volume: lv_swap
@@ -73,7 +89,12 @@ autoinstall:
       - type: format
         id: format_root
         volume: lv_root
-        fstype: ext4  # or btrfs / xfs
+        # or btrfs / xfs
+        fstype: ext4
+      - type: mount
+        id: mount_efi
+        device: format_esp
+        path: /boot/efi
       - type: mount
         id: mount_boot
         device: format_boot
