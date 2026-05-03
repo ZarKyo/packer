@@ -30,7 +30,11 @@ $logArgs = $arguments | ForEach-Object {
 Write-Output "Invoking: $out $logArgs"
 
 & $out @arguments
+$ok = $?
 $rc = $LASTEXITCODE
-if ($rc -ne 0) {
-    throw "winfor-cli.ps1 exited with code $rc"
+# $LASTEXITCODE is only set by native executables, not by PS scripts.
+# Use $? to also catch failures that leave $LASTEXITCODE null.
+if ((-not $ok) -or ($null -ne $rc -and $rc -ne 0)) {
+    $code = if ($null -ne $rc) { $rc } else { 1 }
+    throw "winfor-cli.ps1 exited with code $code"
 }

@@ -16,10 +16,10 @@
       from variables defined in winfor.pkr.hcl (templatefile() call).
 
     Floppy contents (from `floppy_files` in winfor.pkr.hcl)
-      a:\00-fixnetwork.ps1     — force network → Private (COM)
-      a:\07-enable-winrm.ps1   — full WinRM/firewall/service setup
-      a:\08-enable-rdp.bat     — enable RDP
-      a:\09-win-updates.ps1    — Windows Updates loop (long, reboots)
+      a:\00-fixnetwork.ps1    — force network → Private (COM)
+      a:\01-enable-winrm.ps1  — full WinRM/firewall/service setup
+      a:\02-enable-rdp.ps1    — enable RDP
+      a:\03-win-updates.ps1   — Windows Updates loop (long, reboots)
 
     Packer hardware-check bypasses are applied in the windowsPE pass so the
     install proceeds on VMs without TPM 2.0 / Secure Boot / minimum RAM/CPU.
@@ -318,6 +318,44 @@
           <Order>20</Order>
           <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent" /v DisableSoftLanding /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
+        <!--
+          Defender GP policy: written offline here (specialize pass runs before any
+          user session, before Defender/AMSI is active) so Defender starts in
+          policy-disabled mode on first boot. This prevents AMSI from blocking
+          02-disable-defender.ps1 and 06-install-winfor.ps1 during provisioning.
+        -->
+        <RunSynchronousCommand wcm:action="add">
+          <Order>21</Order>
+          <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender" /v DisableAntiSpyware /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>22</Order>
+          <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender" /v DisableAntiVirus /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>23</Order>
+          <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection" /v DisableRealtimeMonitoring /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>24</Order>
+          <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection" /v DisableBehaviorMonitoring /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>25</Order>
+          <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection" /v DisableOnAccessProtection /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>26</Order>
+          <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection" /v DisableScanOnRealtimeEnable /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>27</Order>
+          <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" /v SubmitSamplesConsent /t REG_DWORD /d 2 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>28</Order>
+          <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" /v SpynetReporting /t REG_DWORD /d 0 /f</Path>
+        </RunSynchronousCommand>
       </RunSynchronous>
     </component>
 
@@ -369,7 +407,7 @@
       </UserAccounts>
 
       <!--
-        Auto-logs in the user up to 5 times so Packer provisioners can run
+        Auto-logs in the user up to 10 times so Packer provisioners can run
         without waiting for manual login. LogonCount decrements on each reboot.
       -->
       <AutoLogon>
@@ -378,7 +416,7 @@
           <PlainText>true</PlainText>
         </Password>
         <Enabled>true</Enabled>
-        <LogonCount>5</LogonCount>
+        <LogonCount>10</LogonCount>
         <Username>${username}</Username>
       </AutoLogon>
 
@@ -416,8 +454,8 @@
             shell at first-logon context. Wrapping in cmd.exe /c ensures stable
             quoting/redirection across PowerShell, .bat, and reg.exe invocations.
           - a:\ prefix: scripts come from Packer's virtual floppy, mounted as A:.
-          - Floppy script names mirror the execution order in this block:
-            00 (fixnetwork) < 07 (enable-winrm) < 08 (enable-rdp) < 09 (win-updates).
+          - Floppy scripts use the `floppy-` prefix to distinguish them from
+            the numbered Packer provisioner scripts (00–07, 99).
       -->
       <FirstLogonCommands>
 
@@ -461,14 +499,14 @@
         -->
         <SynchronousCommand wcm:action="add">
           <Order>4</Order>
-          <CommandLine>cmd.exe /c powershell.exe -ExecutionPolicy Bypass -NoProfile -File a:\07-enable-winrm.ps1</CommandLine>
+          <CommandLine>cmd.exe /c powershell.exe -ExecutionPolicy Bypass -NoProfile -File a:\01-enable-winrm.ps1</CommandLine>
           <Description>Enable WinRM (listener/firewall/service)</Description>
         </SynchronousCommand>
 
         <!-- Order 5 — enable RDP (port 3389) so the finished VM is reachable post-build -->
         <SynchronousCommand wcm:action="add">
           <Order>5</Order>
-          <CommandLine>cmd.exe /c a:\08-enable-rdp.bat</CommandLine>
+          <CommandLine>cmd.exe /c powershell.exe -ExecutionPolicy Bypass -NoProfile -File a:\02-enable-rdp.ps1</CommandLine>
           <Description>Enable RDP</Description>
         </SynchronousCommand>
 
@@ -541,7 +579,7 @@
         -->
         <SynchronousCommand wcm:action="add">
           <Order>12</Order>
-          <CommandLine>cmd.exe /c powershell.exe -ExecutionPolicy Bypass -NoProfile -File a:\09-win-updates.ps1</CommandLine>
+          <CommandLine>cmd.exe /c powershell.exe -ExecutionPolicy Bypass -NoProfile -File a:\03-win-updates.ps1</CommandLine>
           <Description>Install Windows Updates</Description>
         </SynchronousCommand>
 

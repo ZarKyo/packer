@@ -9,6 +9,6 @@ $BASE="ubuntu-2404"
 $CONF_NAME="ubuntu-2404"
 
 # Output folder name used by VMware and when moving the VM to $VM_DIR
-$VM_DIR_NAME="zubuntu-2404"
+$VM_DIR_NAME="ubuntu-2404"
 
 New-VirtualMachine $BASE $CONF_NAME $VM_DIR_NAME

@@ -3,7 +3,7 @@ cpus      = 4
 memory    = 8192
 disk_size = 102400  // 100 GB
 
-headless = false
+headless  = "true"
 username = "forensics"
 password = "forensics"
 

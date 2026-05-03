@@ -1,4 +1,4 @@
-param($script:RestartRequired=0,
+﻿param($script:RestartRequired=0,
         $script:MoreUpdates=0,
         $script:MaxCycles=5,
         $MaxUpdatesPerCycle=500,
@@ -11,14 +11,14 @@ $null = $script:MaxCycles
 $null = $MaxUpdatesPerCycle
 
 # Re-enable WinRM after Windows Updates may have disturbed firewall/service
-# state. Source of truth lives in a:\07-enable-winrm.ps1 (same script
+# state. Source of truth lives in a:\01-enable-winrm.ps1 (same script
 # Autounattend invokes at first logon, kept on the floppy). Called from each
 # of the 3 exit paths of the WU loop so the LAST iteration of the Run-key
 # resume always restores connectivity for Packer — Order 13 in Autounattend
 # would not work because FirstLogonCommands has already terminated by then.
 function Enable-WinRMForPacker {
-    Write-Output "Re-enabling WinRM via a:\07-enable-winrm.ps1"
-    & a:\07-enable-winrm.ps1
+    Write-Output "Re-enabling WinRM via a:\01-enable-winrm.ps1"
+    & a:\01-enable-winrm.ps1
 }
 
 function LogWrite {
@@ -218,7 +218,7 @@ function Invoke-WindowsUpdate() {
             $script:RestartRequired=1
             $script:MoreUpdates=0
             Invoke-ContinueRestartOrEnd
-            LogWrite "Show never happen to see this text!"
+            LogWrite "This should never happen"
             $null = $RestartRequired
             Restart-Computer
         }

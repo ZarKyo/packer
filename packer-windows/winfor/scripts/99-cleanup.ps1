@@ -8,7 +8,7 @@ Remove-Item -Force "C:\winfor-cli.ps1"
 Write-Output "Re-enabling UAC"
 reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v EnableLUA /t REG_DWORD /d 1 /f | Out-Null
 
-Write-Output "Disabling AutoLogon residue (LogonCount expires after 5 logons but be safe)"
+Write-Output "Disabling AutoLogon residue (LogonCount expires after 10 logons but be safe)"
 reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v AutoAdminLogon  /f | Out-Null
 reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultPassword /f | Out-Null
 

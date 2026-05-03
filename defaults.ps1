@@ -44,13 +44,21 @@ function New-VirtualMachine {
         foreach ($f in $ExtraVarFiles) { $extraArgs += "-var-file"; $extraArgs += $f }
 
         packer build -force -var-file ../variables-$BASE.pkrvars.hcl @extraArgs ./$CONF_NAME.pkr.hcl
+        $packerExitCode = $LASTEXITCODE
         Start-Sleep -s 2
+
+        if ($packerExitCode -ne 0) {
+            Write-Output "Packer build failed (exit code $packerExitCode). Exiting."
+            Set-Location ..
+            Exit
+        }
 
         if (-not (Test-Path $VM_DIR/$VM_DIR_NAME)) {
             Move-Item ./$VM_DIR_NAME $VM_DIR
             Start-Sleep -s 2
         } else {
             Write-Output "Directory for VM has been created already during packer run. Exiting."
+            Set-Location ..
             Exit
         }
 

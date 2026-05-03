@@ -8,3 +8,7 @@ sift/SIFT*
 packer-windows/variables-winfor-iso.pkrvars.hcl
 # ISO cache folder created by fetch-win-iso.ps1
 packer-windows/iso/
+
+# Temp
+deploy-ESXI.md
+deploy-proxmox.md

@@ -25,7 +25,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@main
         with:
-          fetch-depth: 0             # Fetch full history for accurate PR linting
+          fetch-depth: 0  # Full history for accurate PR linting
           persist-credentials: false # Security: do not persist GitHub token
 
       # ----------------------------
@@ -35,7 +35,7 @@ jobs:
         uses: super-linter/super-linter@v8
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Needed for PR status
-          VALIDATE_ALL_CODEBASE: false              # Only lint changed files in PRs
+          VALIDATE_ALL_CODEBASE: false  # Lint changed files only
           VALIDATE_BASH: true
           VALIDATE_POWERSHELL: true
           VALIDATE_XML: true
@@ -47,17 +47,35 @@ jobs:
     strategy:
       matrix:
         template:
-          - { base: packer-ubuntu,   dir: ubuntu-2404, vars: variables-ubuntu-2404.pkrvars.hcl }
-          - { base: packer-ubuntu,   dir: sift,        vars: variables-sift.pkrvars.hcl }
-          - { base: packer-ubuntu,   dir: remnux,      vars: variables-remnux.pkrvars.hcl }
-          - { base: packer-ubuntu,   dir: dfir,        vars: variables-sift.pkrvars.hcl }
-          - { base: packer-windows,  dir: winfor,      vars: variables-winfor.pkrvars.hcl }
+          - base: packer-ubuntu
+            dir: ubuntu-2404
+            vars: variables-ubuntu-2404.pkrvars.hcl
+          - base: packer-ubuntu
+            dir: sift
+            vars: variables-sift.pkrvars.hcl
+          - base: packer-ubuntu
+            dir: remnux
+            vars: variables-remnux.pkrvars.hcl
+          - base: packer-ubuntu
+            dir: dfir
+            vars: variables-sift.pkrvars.hcl
+          - base: packer-windows
+            dir: winfor
+            vars: variables-winfor.pkrvars.hcl
+            # Placeholder checksum in pkrvars is invalid hex; override for CI
+            extra_vars: -var iso_checksum_windows=none
+    env:
+      TMPL_DIR: ${{ matrix.template.base }}/${{ matrix.template.dir }}
     steps:
       - uses: actions/checkout@v6
       - uses: hashicorp/setup-packer@v3
       - name: Packer init
-        working-directory: ${{ matrix.template.base }}/${{ matrix.template.dir }}
+        working-directory: ${{ env.TMPL_DIR }}
         run: packer init .
       - name: Packer validate
-        working-directory: ${{ matrix.template.base }}/${{ matrix.template.dir }}
-        run: packer validate -var-file=../${{ matrix.template.vars }} .
+        working-directory: ${{ env.TMPL_DIR }}
+        run: >-
+          packer validate
+          -var-file=../${{ matrix.template.vars }}
+          ${{ matrix.template.extra_vars || '' }}
+          .

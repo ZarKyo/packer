@@ -6,7 +6,7 @@ param(
 )
 
 # Load defaults
-. ../defaults.ps1
+. "$PSScriptRoot/../defaults.ps1"
 
 # Selects the packer variables file: variables-$BASE.pkrvars.hcl
 # (CPU/RAM/disk, credentials — ISO values are overridden below)

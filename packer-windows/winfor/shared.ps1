@@ -1,4 +1,4 @@
-. ../../defaults.ps1
+. "$PSScriptRoot/../../defaults.ps1"
 
 $VM = "WIN-FOR"
 

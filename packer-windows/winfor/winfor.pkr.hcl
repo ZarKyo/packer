@@ -109,9 +109,9 @@ variable "headless" {
 // ---------------------------------
 
 source "vmware-iso" "winfor" {
-  vm_name       = var.vm_name
+  vm_name       = "${var.vm_name}"
   guest_os_type = "windows11-64"
-  headless      = var.headless
+  headless      = "${var.headless}"
   firmware      = "efi"
   version       = 21
 
@@ -119,22 +119,22 @@ source "vmware-iso" "winfor" {
   // boot_wait = "-1s" disables the initial wait and starts sending keys immediately.
   boot_command = [
     "<enter><wait><enter><wait><enter><wait><enter><wait><enter><wait>",
-    "<enter><wait><enter><wait><enter><wait><enter><wait90><enter><wait>",
+    "<enter><wait><enter><wait><enter><wait><enter><wait40><enter><wait>",
     "<enter><wait3><enter><wait><enter>"
   ]
   boot_wait    = "-1s"
 
-  iso_urls     = var.iso_urls_windows
-  iso_checksum = var.iso_checksum_windows
+  iso_urls     = "${var.iso_urls_windows}"
+  iso_checksum = "${var.iso_checksum_windows}"
 
   // Autounattend.xml is rendered from a template and shipped as a virtual floppy.
   // Windows Setup auto-discovers Autounattend.xml on attached floppy/CD volumes.
   floppy_content = {
     "Autounattend.xml" = templatefile("${path.root}/answer/Autounattend.xml", {
-      username   = var.username
-      password   = var.password
-      hostname   = var.hostname
-      image_name = var.windows_image_name
+      username   = "${var.username}"
+      password   = "${var.password}"
+      hostname   = "${var.hostname}"
+      image_name = "${var.windows_image_name}"
     })
   }
 
@@ -143,17 +143,17 @@ source "vmware-iso" "winfor" {
   // WinRM, RDP, and Windows Updates.
   floppy_files = [
     "scripts/00-fixnetwork.ps1",
-    "scripts/07-enable-winrm.ps1",
-    "scripts/08-enable-rdp.bat",
-    "scripts/09-win-updates.ps1",
+    "scripts/01-enable-winrm.ps1",
+    "scripts/02-enable-rdp.ps1",
+    "scripts/03-win-updates.ps1",
   ]
 
-  output_directory = var.vm_name
+  output_directory = "${var.vm_name}"
 
   // Communicator: WinRM (Autounattend opens it via FirstLogonCommands)
   communicator   = "winrm"
-  winrm_username = var.username
-  winrm_password = var.password
+  winrm_username = "${var.username}"
+  winrm_password = "${var.password}"
   winrm_timeout  = "4h"
   winrm_insecure = true
   winrm_use_ssl  = false
@@ -161,14 +161,15 @@ source "vmware-iso" "winfor" {
   shutdown_command = "shutdown /s /t 10 /f /d p:4:1 /c \"Packer shutdown\""
   shutdown_timeout = "30m"
 
-  disk_size            = var.disk_size
+  disk_size            = "${var.disk_size}"
   disk_adapter_type    = "lsisas1068"
-  memory               = var.memory
-  cpus                 = var.cpus
-  network_adapter_type = var.network_adapter_type
+  memory               = "${var.memory}"
+  cpus                 = "${var.cpus}"
+  network_adapter_type = "${var.network_adapter_type}"
   usb                  = true
 
   // VMware Tools ISO is uploaded by Packer and mounted later by 01-vmware-tools.ps1
+  tools_mode          = "upload"
   tools_upload_flavor = "windows"
   tools_upload_path   = "C:\\Windows\\Temp\\windows.iso"
 
@@ -194,7 +195,7 @@ build {
   provisioner "powershell" {
     scripts = [
       "${path.root}/scripts/00-fixnetwork.ps1",
-      "${path.root}/scripts/01-vmware-tools.ps1",
+      "${path.root}/scripts/04-vmware-tools.ps1",
     ]
   }
 
@@ -206,9 +207,9 @@ build {
   // before any long-running download / install kicks off.
   provisioner "powershell" {
     scripts = [
-      "${path.root}/scripts/02-disable-defender.ps1",
-      "${path.root}/scripts/03-set-powerplan.ps1",
-      "${path.root}/scripts/03b-disable-screensaver.ps1",
+      "${path.root}/scripts/05-disable-defender.ps1",
+      "${path.root}/scripts/06-set-powerplan.ps1",
+      "${path.root}/scripts/07-disable-screensaver.ps1",
     ]
   }
 
@@ -217,8 +218,8 @@ build {
   // it so the GUI is usable post-build for re-running selections.)
   provisioner "powershell" {
     scripts = [
-      "${path.root}/scripts/04-enable-wsl.ps1",
-      "${path.root}/scripts/05-install-dotnet.ps1",
+      "${path.root}/scripts/08-enable-wsl.ps1",
+      "${path.root}/scripts/09-install-dotnet.ps1",
     ]
   }
 
@@ -236,7 +237,7 @@ build {
       "WINFOR_XUSER=${var.xways_user}",
       "WINFOR_XPASS=${var.xways_pass}",
     ]
-    scripts           = ["${path.root}/scripts/06-install-winfor.ps1"]
+    scripts           = ["${path.root}/scripts/10-install-winfor.ps1"]
     elevated_user     = var.username
     elevated_password = var.password
     timeout           = "6h"
