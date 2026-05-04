@@ -93,6 +93,18 @@ variable "winfor_mode" {
   default     = "dedicated"
 }
 
+variable "winfor_custom_src" {
+  description = "Host-side path to the custom state file (relative to this .pkr.hcl). Only used when winfor_mode = \"custom\"."
+  type        = string
+  default     = ""
+}
+
+variable "winfor_custom" {
+  description = "Destination path on the VM for the custom state file. Must match where winfor_custom_src is uploaded."
+  type        = string
+  default     = ""
+}
+
 variable "include_wsl" {
   description = "Install SIFT and REMnux inside WSL2"
   type        = bool
@@ -145,6 +157,7 @@ source "vmware-iso" "winfor" {
     "scripts/02-enable-rdp.ps1",
     "scripts/03-win-updates.ps1",
     "scripts/05-disable-defender.ps1",
+    "scripts/10-install-winfor.ps1",
     "scripts/disable-winrm.ps1",
   ]
 
@@ -229,17 +242,36 @@ build {
   }
 
   // Step 4 — run winfor-cli.ps1 (the long one: SaltStack + tools + WSL distros)
+  //
+  // We upload the script via a separate file provisioner and set env vars inline
+  // instead of using environment_vars + scripts together. When environment_vars is
+  // combined with elevated_user, Packer generates a dot-source command with
+  // forward-slash paths (. c:/Windows/Temp/packer-ps-env-vars-*.ps1) that
+  // PowerShell rejects — the dot-source operator does not accept c:/ style paths.
+  // Upload the custom state file when winfor_mode = "custom".
+  // Remove or comment out this block for addon/dedicated builds.
+  provisioner "file" {
+    source      = "${path.root}/${var.winfor_custom_src}"
+    destination = "${var.winfor_custom}"
+  }
+
+  provisioner "file" {
+    source      = "${path.root}/scripts/10-install-winfor.ps1"
+    destination = "C:\\Windows\\Temp\\10-install-winfor.ps1"
+  }
+
   provisioner "powershell" {
-    environment_vars = [
-      "WINFOR_USER=${var.username}",
-      "WINFOR_MODE=${var.winfor_mode}",
-      "WINFOR_INCLUDE_WSL=${var.include_wsl}",
-      "WINFOR_XUSER=${var.xways_user}",
-      "WINFOR_XPASS=${var.xways_pass}",
+    inline = [
+      "$env:WINFOR_USER        = '${var.username}'",
+      "$env:WINFOR_MODE        = '${var.winfor_mode}'",
+      "$env:WINFOR_CUSTOM      = '${var.winfor_custom}'",
+      "$env:WINFOR_INCLUDE_WSL = '${var.include_wsl}'",
+      "$env:WINFOR_XUSER       = '${var.xways_user}'",
+      "$env:WINFOR_XPASS       = '${var.xways_pass}'",
+      "& 'C:\\Windows\\Temp\\10-install-winfor.ps1'",
     ]
-    scripts           = ["${path.root}/scripts/10-install-winfor.ps1"]
-    elevated_user     = var.username
-    elevated_password = var.password
+    elevated_user     = "${var.username}"
+    elevated_password = "${var.password}"
     timeout           = "6h"
   }
 

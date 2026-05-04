@@ -7,8 +7,10 @@ headless  = "true"
 username = "forensics"
 password = "forensics"
 
-winfor_mode = "dedicated"
-include_wsl = true
+winfor_mode       = "custom"
+winfor_custom_src = "files/winfor-custom.sls"    // source on the host (relative to winfor.pkr.hcl)
+winfor_custom     = "C:\\winfor-custom.sls"     // destination on the VM
+include_wsl   = false
 
 // X-Ways portal credentials — leave empty if you do not have a license.
 xways_user = ""

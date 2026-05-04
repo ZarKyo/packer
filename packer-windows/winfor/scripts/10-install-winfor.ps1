@@ -2,12 +2,14 @@ $ErrorActionPreference = "Stop"
 
 $WinforUser = $env:WINFOR_USER
 $Mode       = $env:WINFOR_MODE
+$Custom     = $env:WINFOR_CUSTOM
 $IncludeWsl = ($env:WINFOR_INCLUDE_WSL -eq "true")
 $XUser      = $env:WINFOR_XUSER
 $XPass      = $env:WINFOR_XPASS
 
 if (-not $WinforUser) { throw "WINFOR_USER not set" }
 if (-not $Mode)       { $Mode = "dedicated" }
+if ($Mode -eq "custom" -and -not $Custom) { throw "WINFOR_CUSTOM not set (required for custom mode)" }
 
 $url = "https://raw.githubusercontent.com/digitalsleuth/WIN-FOR/main/winfor-cli.ps1"
 $out = "C:\winfor-cli.ps1"
@@ -19,6 +21,7 @@ Invoke-WebRequest -Uri $url -OutFile $out -UseBasicParsing
 Set-ExecutionPolicy Bypass -Scope Process -Force
 
 $arguments = @("-Install", "-User", $WinforUser, "-Mode", $Mode)
+if ($Custom)     { $arguments += @("-Custom", $Custom) }
 if ($IncludeWsl) { $arguments += "-IncludeWsl" }
 if ($XUser)      { $arguments += @("-XUser", $XUser) }
 if ($XPass)      { $arguments += @("-XPass", $XPass) }

@@ -14,6 +14,14 @@ Remove-ItemProperty -Path $winlogon -Name "AutoAdminLogon"  -ErrorAction Silentl
 Remove-ItemProperty -Path $winlogon -Name "DefaultPassword" -ErrorAction SilentlyContinue
 Remove-ItemProperty -Path $winlogon -Name "AutoLogonCount"  -ErrorAction SilentlyContinue
 
+Write-Output "Disabling widgets"
+New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Dsh" -Force | Out-Null
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Dsh" -Name "AllowNewsAndInterests" -Value 0 -Type DWord -Force
+
+Write-Output "Setting taskbar search to icon only"
+Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" `
+    -Name "SearchboxTaskbarMode" -Value 1 -Type DWord -Force
+
 # Trim event logs so the snapshot ships small
 Get-WinEvent -ListLog * -ErrorAction SilentlyContinue |
     Where-Object { $_.RecordCount -gt 0 } |
