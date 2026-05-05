@@ -1,6 +1,9 @@
 include:
   - winfor.set-version
   - winfor.repos
+  - winfor.config
+  - winfor.theme.winfor.computer-name
+  - winfor.config.debloat-windows
   - winfor.python3-tools.1768
   - winfor.python3-tools.amcache
   - winfor.python3-tools.analyzemft
@@ -209,6 +212,7 @@ include:
   - winfor.standalones.xsv
   - winfor.standalones.yara
   - winfor.standalones.zimmerman
+  - winfor.theme.winfor
   - winfor.cleanup
 
 winfor-custom-states:
@@ -216,6 +220,9 @@ winfor-custom-states:
     - require:
       - sls: winfor.set-version
       - sls: winfor.repos
+      - sls: winfor.config
+      - sls: winfor.theme.winfor.computer-name
+      - sls: winfor.config.debloat-windows
       - sls: winfor.python3-tools.1768
       - sls: winfor.python3-tools.amcache
       - sls: winfor.python3-tools.analyzemft
@@ -424,4 +431,5 @@ winfor-custom-states:
       - sls: winfor.standalones.xsv
       - sls: winfor.standalones.yara
       - sls: winfor.standalones.zimmerman
+      - sls: winfor.theme.winfor
       - sls: winfor.cleanup
