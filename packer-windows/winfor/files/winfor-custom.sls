@@ -1,7 +1,6 @@
 include:
   - winfor.set-version
   - winfor.repos
-  - winfor.python3-tools.1768
   - winfor.python3-tools.amcache
   - winfor.python3-tools.analyzemft
   - winfor.python3-tools.bitsparser
@@ -216,7 +215,6 @@ winfor-custom-states:
     - require:
       - sls: winfor.set-version
       - sls: winfor.repos
-      - sls: winfor.python3-tools.1768
       - sls: winfor.python3-tools.amcache
       - sls: winfor.python3-tools.analyzemft
       - sls: winfor.python3-tools.bitsparser
