@@ -44,5 +44,24 @@ sudo apt install -y \
 	file-roller \
 	eog \
 	evince \
-	gnome-disk-utility \
-	firefox
+	gnome-disk-utility
+
+# 6. Firefox from Mozilla's APT repo instead of the snap.
+# On 24.04 the `firefox` package is a transitional shim that installs the snap,
+# and a snap is a loopback squashfs mount that does NOT survive being captured
+# into a live ISO. The Mozilla .deb installs into /usr, so it is captured
+# normally and works offline on the installed system.
+sudo install -d -m 0755 /etc/apt/keyrings
+wget -qO- https://packages.mozilla.org/apt/repo-signing-key.gpg \
+	| sudo tee /etc/apt/keyrings/packages.mozilla.org.asc > /dev/null
+echo "deb [signed-by=/etc/apt/keyrings/packages.mozilla.org.asc] https://packages.mozilla.org/apt mozilla main" \
+	| sudo tee /etc/apt/sources.list.d/mozilla.list > /dev/null
+# Pin so the Mozilla build always wins over Ubuntu's transitional (snap) package,
+# now and on future upgrades.
+printf 'Package: *\nPin: origin packages.mozilla.org\nPin-Priority: 1000\n' \
+	| sudo tee /etc/apt/preferences.d/mozilla > /dev/null
+# Drop the snap and the transitional package that ubuntu-desktop pulled in.
+sudo snap remove --purge firefox 2>/dev/null || true
+sudo apt purge -y firefox 2>/dev/null || true
+sudo apt update
+sudo apt install -y firefox
