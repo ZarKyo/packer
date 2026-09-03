@@ -2,7 +2,7 @@
 
 # Forensics VMs cannot have Defender quarantining SIFT/REMnux tools or malware
 # samples. Tamper Protection blocks Set-MpPreference at runtime, so the durable
-# fix is the Group Policy registry keys — they are honored after reboot.
+# fix is the Group Policy registry keys - they are honored after reboot.
 
 Write-Output "Applying Defender Group Policy registry keys"
 

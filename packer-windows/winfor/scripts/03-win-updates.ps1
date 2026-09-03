@@ -14,7 +14,7 @@ $null = $MaxUpdatesPerCycle
 # state. Source of truth lives in a:\01-enable-winrm.ps1 (same script
 # Autounattend invokes at first logon, kept on the floppy). Called from each
 # of the 3 exit paths of the WU loop so the LAST iteration of the Run-key
-# resume always restores connectivity for Packer — Order 13 in Autounattend
+# resume always restores connectivity for Packer - Order 13 in Autounattend
 # would not work because FirstLogonCommands has already terminated by then.
 function Enable-WinRMForPacker {
     Write-Output "Re-enabling WinRM via a:\01-enable-winrm.ps1"

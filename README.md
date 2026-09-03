@@ -112,7 +112,7 @@ Windows 11 forensics workstation based on [digitalsleuth/WIN-FOR](https://github
 
 The build requires a Windows 11 x64 ISO. Two options:
 
-**Option 1 — fetch automatically (default)**
+**Option 1 - fetch automatically (default)**
 
 `build-winfor.ps1` fetches the Windows 11 Enterprise evaluation ISO (90-day trial, no license needed) from the Microsoft Evaluation Center at runtime. The ISO is cached in `packer-windows/iso/` and reused on subsequent builds.
 
@@ -123,7 +123,7 @@ cd packer-windows
 
 Set `windows_image_name` in `variables-winfor.pkrvars.hcl` to `"Windows 11 Enterprise Evaluation"` when using this ISO.
 
-**Option 2 — local ISO**
+**Option 2 - local ISO**
 
 Pass any local Windows 11 ISO (e.g. Pro, downloaded via Media Creation Tool) with `-IsoPath`. The SHA256 checksum is computed automatically.
 
@@ -171,16 +171,16 @@ Edit `variables-winfor.pkrvars.hcl` before building:
 
 Scripts are split into two phases: floppy scripts run before Packer connects (invoked from `Autounattend.xml`), provisioner scripts run over WinRM after Windows Updates complete.
 
-**Floppy scripts** — shipped as `floppy_files`, called from `FirstLogonCommands`:
+**Floppy scripts** - shipped as `floppy_files`, called from `FirstLogonCommands`:
 
 | Script | Role |
 | --- | --- |
 | `00-fixnetwork.ps1` | Force network profile → Private (needed before WinRM setup) |
 | `01-enable-winrm.ps1` | Full WinRM setup (listener, firewall, auth); called by `03-win-updates.ps1` at exit |
 | `02-enable-rdp.ps1` | Enable RDP (port 3389) |
-| `03-win-updates.ps1` | Windows Updates loop — polls, downloads, installs, reboots; enables WinRM when done |
+| `03-win-updates.ps1` | Windows Updates loop - polls, downloads, installs, reboots; enables WinRM when done |
 
-**Packer provisioner scripts** — run over WinRM after WU completes:
+**Packer provisioner scripts** - run over WinRM after WU completes:
 
 | Script | Step | Role |
 | --- | --- | --- |

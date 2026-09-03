@@ -57,7 +57,7 @@ variable "iso_checksum_windows" {
 }
 
 variable "windows_image_name" {
-  description = "Edition to install — must match the /IMAGE/NAME inside install.wim of the ISO"
+  description = "Edition to install - must match the /IMAGE/NAME inside install.wim of the ISO"
   type        = string
   default     = "Windows 11 Pro"
 }
@@ -204,7 +204,7 @@ source "vmware-iso" "winfor" {
 build {
   sources = ["source.vmware-iso.winfor"]
 
-  // Step 1 — force network profile to Private (WinRM fails on Public), then install VMware Tools.
+  // Step 1 - force network profile to Private (WinRM fails on Public), then install VMware Tools.
   provisioner "powershell" {
     scripts = [
       "${path.root}/scripts/00-fixnetwork.ps1",
@@ -216,7 +216,7 @@ build {
     restart_timeout = "30m"
   }
 
-  // Step 2 — pin power plan and suppress screensaver/timeouts before long installs.
+  // Step 2 - pin power plan and suppress screensaver/timeouts before long installs.
   // Defender is already disabled by GP registry keys in the specialize pass
   // (Autounattend.xml Orders 21-29); no provisioner step needed here.
   provisioner "powershell" {
@@ -226,7 +226,7 @@ build {
     ]
   }
 
-  // Step 3 — pre-enable WSL features and install .NET 8 Desktop Runtime
+  // Step 3 - pre-enable WSL features and install .NET 8 Desktop Runtime
   // (WIN-FOR's GUI customizer requires .NET 8; the CLI does not, but we install
   // it so the GUI is usable post-build for re-running selections.)
   provisioner "powershell" {
@@ -241,13 +241,13 @@ build {
     restart_timeout = "30m"
   }
 
-  // Step 4 — run winfor-cli.ps1 (the long one: SaltStack + tools + WSL distros)
+  // Step 4 - run winfor-cli.ps1 (the long one: SaltStack + tools + WSL distros)
   //
   // We upload the script via a separate file provisioner and set env vars inline
   // instead of using environment_vars + scripts together. When environment_vars is
   // combined with elevated_user, Packer generates a dot-source command with
   // forward-slash paths (. c:/Windows/Temp/packer-ps-env-vars-*.ps1) that
-  // PowerShell rejects — the dot-source operator does not accept c:/ style paths.
+  // PowerShell rejects - the dot-source operator does not accept c:/ style paths.
   // Upload the custom state file when winfor_mode = "custom".
   // Remove or comment out this block for addon/dedicated builds.
   provisioner "file" {
@@ -279,7 +279,7 @@ build {
     restart_timeout = "30m"
   }
 
-  // Step 5 — cleanup temp files, restore UAC
+  // Step 5 - cleanup temp files, restore UAC
   provisioner "powershell" {
     scripts = ["${path.root}/scripts/99-cleanup.ps1"]
   }

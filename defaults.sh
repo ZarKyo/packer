@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 #
-# Bash equivalent of defaults.ps1 — source this file from shared.sh scripts.
+# Bash equivalent of defaults.ps1 - source this file from shared.sh scripts.
 # Edit the three path variables below for your environment.
 
 export SHARED_RO_NAME="ro"
@@ -13,7 +13,7 @@ VM_DIR="$HOME/vmware"
 
 export PACKER_CACHE_DIR="../packer_cache"
 
-# vmrun location — adjust if not in PATH
+# vmrun location - adjust if not in PATH
 VMRUN="${VMRUN:-vmrun}"
 
 # --- No need to edit below --- #

@@ -3,7 +3,7 @@
 
   <!--
     ============================================================================
-    Windows 11 unattended install — WIN-FOR Packer build
+    Windows 11 unattended install - WIN-FOR Packer build
     ============================================================================
 
     Target  : VMware Workstation, UEFI/GPT, no vTPM
@@ -16,10 +16,10 @@
       from variables defined in winfor.pkr.hcl (templatefile() call).
 
     Floppy contents (from `floppy_files` in winfor.pkr.hcl)
-      a:\00-fixnetwork.ps1    — force network → Private (COM)
-      a:\01-enable-winrm.ps1  — full WinRM/firewall/service setup
-      a:\02-enable-rdp.ps1    — enable RDP
-      a:\03-win-updates.ps1   — Windows Updates loop (long, reboots)
+      a:\00-fixnetwork.ps1    - force network → Private (COM)
+      a:\01-enable-winrm.ps1  - full WinRM/firewall/service setup
+      a:\02-enable-rdp.ps1    - enable RDP
+      a:\03-win-updates.ps1   - Windows Updates loop (long, reboots)
 
     Packer hardware-check bypasses are applied in the windowsPE pass so the
     install proceeds on VMs without TPM 2.0 / Secure Boot / minimum RAM/CPU.
@@ -31,7 +31,7 @@
 
   <!--
     ============================================================================
-    Pass 1 — windowsPE
+    Pass 1 - windowsPE
     ============================================================================
     Runs inside the Windows Preinstallation Environment (the live media), BEFORE
     any files are copied to the target disk. This is the only pass where we can:
@@ -95,9 +95,9 @@
 
       <!--
         GPT partition layout for UEFI boot (disk 0, wiped):
-          Partition 1 — EFI system partition (500 MB, FAT32, labeled "System")
-          Partition 2 — Microsoft Reserved Partition (16 MB, no format)
-          Partition 3 — Windows primary partition (remaining space, NTFS, labeled "Windows")
+          Partition 1 - EFI system partition (500 MB, FAT32, labeled "System")
+          Partition 2 - Microsoft Reserved Partition (16 MB, no format)
+          Partition 3 - Windows primary partition (remaining space, NTFS, labeled "Windows")
       -->
       <DiskConfiguration>
         <Disk wcm:action="add">
@@ -180,12 +180,12 @@
 
   <!--
     ============================================================================
-    Pass 2 — specialize
+    Pass 2 - specialize
     ============================================================================
     Runs once the OS files are copied to disk and the system has booted into the
     target install (still pre-OOBE). This pass handles machine-identity settings
     (hostname, timezone, locale) and applies HKLM-level policy registry values
-    while no user is logged on yet — anything we set here is in place before
+    while no user is logged on yet - anything we set here is in place before
     OOBE / FirstLogonCommands run.
 
     The big block of RunSynchronousCommand entries on the Deployment component
@@ -357,7 +357,7 @@
           <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" /v SpynetReporting /t REG_DWORD /d 0 /f</Path>
         </RunSynchronousCommand>
         <!--
-          Order 29 — disable Tamper Protection before the first user session.
+          Order 29 - disable Tamper Protection before the first user session.
           Without this, Tamper Protection blocks the GP keys above (Orders 21-28)
           from actually disabling Defender on Windows 11 22H2+. This registry
           write must happen in the specialize pass (offline, before MsMpEng.exe
@@ -369,7 +369,7 @@
           <Path>reg add "HKLM\SOFTWARE\Microsoft\Windows Defender\Features" /v TamperProtection /t REG_DWORD /d 4 /f</Path>
         </RunSynchronousCommand>
         <!--
-          Order 30 — exclude Packer's script staging folder from Defender/AMSI
+          Order 30 - exclude Packer's script staging folder from Defender/AMSI
           scanning. Packer uploads provisioner scripts to C:\Windows\Temp before
           running them; without this exclusion AMSI can flag them at parse time
           even after Defender is policy-disabled.
@@ -385,19 +385,19 @@
 
   <!--
     ============================================================================
-    Pass 3 — oobeSystem
+    Pass 3 - oobeSystem
     ============================================================================
     Runs during the Out-Of-Box Experience (the welcome wizard on first boot).
     This is the last pass; once it completes, the user session starts.
 
     What this pass sets up:
-      - The local administrator account (${username}) — required so Packer can
+      - The local administrator account (${username}) - required so Packer can
         log in via WinRM.
-      - AutoLogon (5 reboots) — so Packer-triggered restarts don't stall on the
+      - AutoLogon (5 reboots) - so Packer-triggered restarts don't stall on the
         login screen.
-      - OOBE screen suppression — hides EULA, OEM, online-account, wireless
+      - OOBE screen suppression - hides EULA, OEM, online-account, wireless
         setup, etc., for a fully unattended install.
-      - FirstLogonCommands — runs RDP, privacy tweaks, and Windows Updates.
+      - FirstLogonCommands - runs RDP, privacy tweaks, and Windows Updates.
         WinRM is NOT enabled here; it is brought up by 03-win-updates.ps1 at
         its last iteration (all 3 exit paths). Packer waits (winrm_timeout=4h)
         until WU is fully done before any provisioner runs.
@@ -458,7 +458,7 @@
 
       <!--
         ========================================================================
-        FirstLogonCommands — bootstrap sequence (runs as local admin, in order)
+        FirstLogonCommands - bootstrap sequence (runs as local admin, in order)
         ========================================================================
         These commands run synchronously on the very first user logon, BEFORE
         Packer ever attempts its first WinRM connection. The ordering matters:
@@ -483,11 +483,11 @@
             quoting/redirection across PowerShell, .bat, and reg.exe invocations.
           - a:\ prefix: scripts come from Packer's virtual floppy, mounted as A:.
           - Floppy scripts use the `floppy-` prefix to distinguish them from
-            the numbered Packer provisioner scripts (00–07, 99).
+            the numbered Packer provisioner scripts (00-07, 99).
       -->
       <FirstLogonCommands>
 
-        <!-- Order 1 — allow unsigned PowerShell scripts for the rest of the build -->
+        <!-- Order 1 - allow unsigned PowerShell scripts for the rest of the build -->
         <SynchronousCommand wcm:action="add">
           <Order>1</Order>
           <CommandLine>cmd.exe /c powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "Set-ExecutionPolicy Bypass -Scope LocalMachine -Force"</CommandLine>
@@ -495,7 +495,7 @@
         </SynchronousCommand>
 
         <!--
-          Order 2 — disable UAC (EnableLUA=0).
+          Order 2 - disable UAC (EnableLUA=0).
           Without this, Packer's elevated provisioners would trigger UAC prompts
           that no one is there to click. Restored to default by 99-cleanup.ps1.
         -->
@@ -506,7 +506,7 @@
         </SynchronousCommand>
 
         <!--
-          Order 3 — force every network connection to "Private" via COM
+          Order 3 - force every network connection to "Private" via COM
           (INetworkListManager). At first logon Windows often hasn't classified
           the adapter yet; Get-NetConnectionProfile returns "Public"/"Unidentified"
           while the COM interface works regardless. Private classification is also
@@ -520,7 +520,7 @@
           <Description>Force network connections to Private</Description>
         </SynchronousCommand>
 
-        <!-- Order 4 — enable RDP (port 3389) so the finished VM is reachable post-build -->
+        <!-- Order 4 - enable RDP (port 3389) so the finished VM is reachable post-build -->
         <SynchronousCommand wcm:action="add">
           <Order>4</Order>
           <CommandLine>cmd.exe /c powershell.exe -ExecutionPolicy Bypass -NoProfile -File a:\02-enable-rdp.ps1</CommandLine>
@@ -528,20 +528,20 @@
         </SynchronousCommand>
 
         <!--
-          Orders 5-10 — HKCU privacy/telemetry hardening for the just-created
+          Orders 5-10 - HKCU privacy/telemetry hardening for the just-created
           ${username} account. Machine-scope (HKLM) equivalents are set in the
           specialize pass; these are the per-user counterparts that policy
           can't reach until a profile exists.
         -->
 
-        <!-- Order 5 — disable tailored experiences (Microsoft personalized ads/tips based on diagnostic data) -->
+        <!-- Order 5 - disable tailored experiences (Microsoft personalized ads/tips based on diagnostic data) -->
         <SynchronousCommand wcm:action="add">
           <Order>5</Order>
           <CommandLine>cmd.exe /c reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Privacy" /v TailoredExperiencesWithDiagnosticDataEnabled /t REG_DWORD /d 0 /f</CommandLine>
           <Description>Disable tailored experiences</Description>
         </SynchronousCommand>
 
-        <!-- Order 6 — disable the per-user advertising ID used by UWP apps for ad targeting -->
+        <!-- Order 6 - disable the per-user advertising ID used by UWP apps for ad targeting -->
         <SynchronousCommand wcm:action="add">
           <Order>6</Order>
           <CommandLine>cmd.exe /c reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo" /v Enabled /t REG_DWORD /d 0 /f</CommandLine>
@@ -549,7 +549,7 @@
         </SynchronousCommand>
 
         <!--
-          Orders 7-9 — disable inking/typing personalization (collection of
+          Orders 7-9 - disable inking/typing personalization (collection of
           handwriting samples, typed text, and contact harvesting that Windows
           uses to "improve" predictions and IME).
         -->
@@ -569,7 +569,7 @@
           <Description>Disable contact harvesting for typing personalization</Description>
         </SynchronousCommand>
 
-        <!-- Order 10 — suppress the periodic "How are we doing?" feedback prompts -->
+        <!-- Order 10 - suppress the periodic "How are we doing?" feedback prompts -->
         <SynchronousCommand wcm:action="add">
           <Order>10</Order>
           <CommandLine>cmd.exe /c reg add "HKCU\SOFTWARE\Microsoft\Siuf\Rules" /v NumberOfSIUFInPeriod /t REG_DWORD /d 0 /f</CommandLine>
@@ -577,7 +577,7 @@
         </SynchronousCommand>
 
         <!--
-          Order 11 — Windows Updates loop (a:\03-win-updates.ps1).
+          Order 11 - Windows Updates loop (a:\03-win-updates.ps1).
           This is the long one: polls Microsoft Update, downloads applicable
           updates, installs them, reboots when needed, and resumes via a Run
           registry entry (HKLM\...\CurrentVersion\Run\InstallWindowsUpdates)

@@ -12,7 +12,7 @@ winfor_custom_src = "files/winfor-custom.sls"    // source on the host (relative
 winfor_custom     = "C:\\winfor-custom.sls"     // destination on the VM
 include_wsl   = false
 
-// X-Ways portal credentials — leave empty if you do not have a license.
+// X-Ways portal credentials - leave empty if you do not have a license.
 xways_user = ""
 xways_pass = ""
 

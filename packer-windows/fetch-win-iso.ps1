@@ -7,8 +7,8 @@
 
 .OUTPUTS
     PSCustomObject with:
-      Path      — absolute path to the cached ISO file
-      Checksum  — "sha256:<hex>" suitable for Packer's iso_checksum variable
+      Path      - absolute path to the cached ISO file
+      Checksum  - "sha256:<hex>" suitable for Packer's iso_checksum variable
 
 .NOTES
     The ISO is stored in packer-windows\iso\ and is excluded from git via
@@ -41,7 +41,7 @@ $page = Invoke-WebRequest -Uri $EvalUrl -UseBasicParsing
 $fwLink = $null
 
 # Regex approach: match any fwlink URL that is followed (within ~300 chars) by
-# the text "ISO 64" — robust against minor HTML structure changes.
+# the text "ISO 64" - robust against minor HTML structure changes.
 $raw = $page.Content
 $pattern = '(https://go\.microsoft\.com/fwlink/[^\s"'']+en-us[^\s"'']*)'
 foreach ($m in [regex]::Matches($raw, $pattern, 'IgnoreCase')) {
